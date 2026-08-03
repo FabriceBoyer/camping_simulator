@@ -1,0 +1,71 @@
+:root {
+  --bg: #eef6ee;
+  --panel-bg: #ffffff;
+  --panel-bg-alt: #f4f1ea;
+  --text: #24291f;
+  --text-muted: #6b7264;
+  --border: #d9d4c7;
+  --primary: #3a7d44;
+  --primary-dark: #2c5f34;
+  --danger: #c0392b;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --topbar-h: 56px;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  font: 15px/1.4 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10160f;
+    --panel-bg: #1b2118;
+    --panel-bg-alt: #212820;
+    --text: #e7ece2;
+    --text-muted: #9aa495;
+    --border: #333c2f;
+    --primary: #4fae5c;
+    --primary-dark: #3a8a45;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  overflow: hidden;
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#root {
+  height: 100dvh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+}
+
+input {
+  font: inherit;
+}

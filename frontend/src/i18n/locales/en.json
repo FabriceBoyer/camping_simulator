@@ -1,0 +1,104 @@
+{
+  "app": { "title": "Camping Manager" },
+  "topbar": {
+    "day": "Day {{day}}",
+    "year": "Year {{year}}",
+    "money": "Cash",
+    "satisfaction": "Satisfaction",
+    "income": "Income",
+    "upkeep": "Expenses"
+  },
+  "season": {
+    "spring": "Spring",
+    "summer": "Summer",
+    "autumn": "Autumn",
+    "winter": "Winter"
+  },
+  "speed": {
+    "pause": "Pause",
+    "normal": "Normal",
+    "fast": "Fast",
+    "veryFast": "Very fast"
+  },
+  "tools": {
+    "select": "Select",
+    "bulldoze": "Bulldoze",
+    "terrainGrass": "Grass",
+    "terrainRoad": "Road",
+    "terrainSand": "Sand"
+  },
+  "categories": {
+    "terrain": "Terrain",
+    "pitch": "Pitches",
+    "amenity": "Amenities",
+    "decoration": "Decoration",
+    "staff": "Staff"
+  },
+  "buildings": {
+    "tentPitch": "Tent pitch",
+    "caravanPitch": "Caravan pitch",
+    "mobileHome": "Mobile home",
+    "chalet": "Chalet",
+    "reception": "Reception",
+    "sanitaryBlock": "Sanitary block",
+    "pool": "Swimming pool",
+    "shop": "Grocery shop",
+    "restaurant": "Restaurant",
+    "playground": "Playground",
+    "laundry": "Laundry",
+    "tree": "Tree",
+    "flowerBed": "Flower bed",
+    "bench": "Bench",
+    "campfire": "Campfire"
+  },
+  "staff": {
+    "groundskeeper": "Groundskeeper",
+    "receptionist": "Receptionist",
+    "lifeguard": "Lifeguard",
+    "hire": "Hire",
+    "fire": "Dismiss",
+    "wage": "Wage/day",
+    "noStaff": "No staff hired yet"
+  },
+  "common": {
+    "demolish": "Demolish",
+    "cost": "Cost",
+    "income": "Income/day",
+    "upkeep": "Upkeep/day",
+    "satisfaction": "Satisfaction",
+    "close": "Close",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "load": "Load",
+    "delete": "Delete",
+    "new": "New game",
+    "loading": "Loading…"
+  },
+  "toast": {
+    "notEnoughMoney": "Not enough money",
+    "tileOccupied": "Tile already occupied",
+    "badTerrain": "Cannot build here",
+    "outOfBounds": "Outside the campsite bounds",
+    "badPlacement": "Invalid placement"
+  },
+  "gameOver": {
+    "title": "Campsite bankrupt",
+    "message": "Your cash has been negative for too long. The campsite must close down.",
+    "restart": "Restart"
+  },
+  "saveLoad": {
+    "title": "Saved games",
+    "namePlaceholder": "Save name",
+    "localSaves": "Local saves (browser)",
+    "cloudSaves": "Online saves (server)",
+    "empty": "No saves yet",
+    "saved": "Game saved",
+    "loaded": "Game loaded",
+    "deleted": "Save deleted",
+    "serverError": "Server unavailable — use a local save",
+    "confirmDelete": "Delete this save?",
+    "confirmNew": "Start a new game? Unsaved progress will be lost.",
+    "updatedAt": "Updated {{date}}"
+  }
+}

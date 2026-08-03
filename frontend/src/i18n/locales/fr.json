@@ -1,0 +1,104 @@
+{
+  "app": { "title": "Camping Manager" },
+  "topbar": {
+    "day": "Jour {{day}}",
+    "year": "An {{year}}",
+    "money": "Trésorerie",
+    "satisfaction": "Satisfaction",
+    "income": "Revenus",
+    "upkeep": "Dépenses"
+  },
+  "season": {
+    "spring": "Printemps",
+    "summer": "Été",
+    "autumn": "Automne",
+    "winter": "Hiver"
+  },
+  "speed": {
+    "pause": "Pause",
+    "normal": "Normal",
+    "fast": "Rapide",
+    "veryFast": "Très rapide"
+  },
+  "tools": {
+    "select": "Sélection",
+    "bulldoze": "Démolir",
+    "terrainGrass": "Herbe",
+    "terrainRoad": "Route",
+    "terrainSand": "Sable"
+  },
+  "categories": {
+    "terrain": "Terrain",
+    "pitch": "Emplacements",
+    "amenity": "Équipements",
+    "decoration": "Décoration",
+    "staff": "Personnel"
+  },
+  "buildings": {
+    "tentPitch": "Emplacement tente",
+    "caravanPitch": "Emplacement caravane",
+    "mobileHome": "Mobil-home",
+    "chalet": "Chalet",
+    "reception": "Accueil",
+    "sanitaryBlock": "Bloc sanitaire",
+    "pool": "Piscine",
+    "shop": "Épicerie",
+    "restaurant": "Restaurant",
+    "playground": "Aire de jeux",
+    "laundry": "Laverie",
+    "tree": "Arbre",
+    "flowerBed": "Parterre de fleurs",
+    "bench": "Banc",
+    "campfire": "Feu de camp"
+  },
+  "staff": {
+    "groundskeeper": "Agent d'entretien",
+    "receptionist": "Réceptionniste",
+    "lifeguard": "Maître-nageur",
+    "hire": "Embaucher",
+    "fire": "Renvoyer",
+    "wage": "Salaire/jour",
+    "noStaff": "Aucun employé pour le moment"
+  },
+  "common": {
+    "demolish": "Démolir",
+    "cost": "Coût",
+    "income": "Revenu/jour",
+    "upkeep": "Entretien/jour",
+    "satisfaction": "Satisfaction",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "save": "Sauvegarder",
+    "load": "Charger",
+    "delete": "Supprimer",
+    "new": "Nouvelle partie",
+    "loading": "Chargement…"
+  },
+  "toast": {
+    "notEnoughMoney": "Fonds insuffisants",
+    "tileOccupied": "Case déjà occupée",
+    "badTerrain": "Impossible de construire ici",
+    "outOfBounds": "Hors des limites du camping",
+    "badPlacement": "Emplacement invalide"
+  },
+  "gameOver": {
+    "title": "Camping en faillite",
+    "message": "Votre trésorerie est négative depuis trop longtemps. Le camping doit fermer ses portes.",
+    "restart": "Recommencer"
+  },
+  "saveLoad": {
+    "title": "Sauvegardes",
+    "namePlaceholder": "Nom de la sauvegarde",
+    "localSaves": "Sauvegardes locales (navigateur)",
+    "cloudSaves": "Sauvegardes en ligne (serveur)",
+    "empty": "Aucune sauvegarde pour l'instant",
+    "saved": "Partie sauvegardée",
+    "loaded": "Partie chargée",
+    "deleted": "Sauvegarde supprimée",
+    "serverError": "Serveur indisponible — utilisez la sauvegarde locale",
+    "confirmDelete": "Supprimer cette sauvegarde ?",
+    "confirmNew": "Démarrer une nouvelle partie ? La progression non sauvegardée sera perdue.",
+    "updatedAt": "Modifiée le {{date}}"
+  }
+}
