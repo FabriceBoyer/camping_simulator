@@ -64,3 +64,12 @@ export interface Camera {
   y: number;
   zoom: number;
 }
+
+export type Weather = 'sunny' | 'cloudy' | 'rain' | 'storm';
+
+export type DisasterType = 'fire' | 'tornado' | 'volcano';
+
+export interface ActiveEvent {
+  type: DisasterType;
+  daysRemaining: number;
+}

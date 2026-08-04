@@ -18,6 +18,10 @@ export interface SimInput {
   satisfaction: number;
   staff: StaffMember[];
   priceMultiplier: number;
+  /** Combined weather × disaster-aftermath × marketing-campaign multiplier. */
+  externalDemandMultiplier: number;
+  /** Combined weather + disaster-aftermath satisfaction adjustment. */
+  externalSatisfactionDelta: number;
 }
 
 export interface SimResult {
@@ -39,7 +43,16 @@ export interface SimResult {
 }
 
 export function simulateDay(input: SimInput, season: Season): SimResult {
-  const { objects, money, day, satisfaction, staff, priceMultiplier } = input;
+  const {
+    objects,
+    money,
+    day,
+    satisfaction,
+    staff,
+    priceMultiplier,
+    externalDemandMultiplier,
+    externalSatisfactionDelta,
+  } = input;
   const allObjects = Object.values(objects);
   const pitchObjects = allObjects.filter((o) => BUILDINGS_BY_ID[o.defId]?.category === 'pitch');
   const otherObjects = allObjects.filter((o) => BUILDINGS_BY_ID[o.defId]?.category !== 'pitch');
@@ -54,7 +67,11 @@ export function simulateDay(input: SimInput, season: Season): SimResult {
   const priceDemandFactor = clamp(2 - priceMultiplier, 0.3, 1.6);
   const demandBase = amenitySatisfaction / (pitchObjects.length * 2 + 15);
   const demand =
-    clamp01(demandBase) * SEASON_MULTIPLIER[season] * clamp01(satisfaction / 100 + 0.2) * priceDemandFactor;
+    clamp01(demandBase) *
+    SEASON_MULTIPLIER[season] *
+    clamp01(satisfaction / 100 + 0.2) *
+    priceDemandFactor *
+    externalDemandMultiplier;
 
   let newGuests = 0;
   const nextObjects: Record<string, PlacedObject> = { ...objects };
@@ -105,7 +122,12 @@ export function simulateDay(input: SimInput, season: Season): SimResult {
   const pricePenalty = Math.max(0, priceMultiplier - 1) * 6;
 
   const targetSatisfaction = clamp(
-    35 + amenitySatisfaction * 1.4 + staffSatisfaction * 1.2 - crowdingPenalty - pricePenalty,
+    35 +
+      amenitySatisfaction * 1.4 +
+      staffSatisfaction * 1.2 -
+      crowdingPenalty -
+      pricePenalty +
+      externalSatisfactionDelta,
     0,
     100,
   );

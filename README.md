@@ -59,12 +59,29 @@ Ouvre ensuite `http://localhost:8080` (port configurable via `HOST_PORT` dans
   nommés (💾) pour garder plusieurs parties.
 - **Déplacement d'objets** (✋) : reprendre un bâtiment déjà posé et le
   glisser vers un nouvel emplacement libre, sans avoir à le démolir/reconstruire.
+- **Panneau d'information** : cliquer/toucher un bâtiment existant (mode
+  Sélection) affiche coût, revenu, entretien, satisfaction et statut
+  d'occupation, avec accès rapide à Déplacer/Démolir.
+- **Météo** : ensoleillé / nuageux / pluie / orage, tirée chaque jour selon la
+  saison ; influence la demande et la satisfaction (pluie de fin de partie
+  visible à l'écran).
+- **Événements spéciaux** (⚡ dans les statistiques) : déclencher incendie,
+  tornade ou éruption volcanique — détruit des bâtiments au hasard, fait
+  chuter la satisfaction et réduit la demande pendant quelques jours.
+- **Banque** : emprunter jusqu'à 6000 €, avec intérêts (2 %/jour) qui
+  s'accumulent sur la dette jusqu'au remboursement.
+- **Marketing** : lancer une campagne payante pour booster temporairement la
+  demande.
+- **Annuler/Rétablir** (↩️/↪️, ou Ctrl+Z / Ctrl+Y) : toutes les actions du
+  joueur (construction, démolition, déplacement, peinture de terrain,
+  personnel, emprunt, marketing, catastrophe) sont annulables/rétablissables.
 - **Vie du camping** : les campeurs des emplacements occupés se promènent
   dans le camping et s'arrêtent parfois pour une activité (baignade à la
   piscine, assis au coin du feu ou au restaurant, jeu à l'aire de jeux/au
   mini-golf/à la scène) ; feu de camp et piscine ont une animation continue
   (flammes, reflets de l'eau) ; nuages qui dérivent en fond. Tout cela reste
-  désactivé tant qu'il n'y a rien à animer, pour préserver la batterie.
+  désactivé tant qu'il n'y a rien à animer (ni campeurs, ni pluie, ni feu de
+  camp/piscine construits), pour préserver la batterie.
 
 ## Contrôles
 

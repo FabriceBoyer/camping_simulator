@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../game/state/store';
+import { WEATHER_ICON } from '../../game/data/weather';
 import SpeedControls from './SpeedControls';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -49,6 +50,11 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
   const year = useGameStore((s) => s.year);
   const season = useGameStore((s) => s.season);
   const satisfaction = useGameStore((s) => s.satisfaction);
+  const weather = useGameStore((s) => s.weather);
+  const undoCount = useGameStore((s) => s.undoStack.length);
+  const redoCount = useGameStore((s) => s.redoStack.length);
+  const undo = useGameStore((s) => s.undo);
+  const redo = useGameStore((s) => s.redo);
   const moneyFlash = useChangeFlash(Math.round(money));
 
   return (
@@ -68,6 +74,9 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
         <div className="stat" title={t('topbar.satisfaction')}>
           {satisfactionFace(satisfaction)} {Math.round(satisfaction)}%
         </div>
+        <div className="stat stat-hide-sm" title={t('topbar.weather')}>
+          {WEATHER_ICON[weather]} {t(`weather.${weather}`)}
+        </div>
         <div className="stat" title={t('season.' + season)}>
           {SEASON_ICON[season]} {t('topbar.day', { day })}
         </div>
@@ -77,6 +86,22 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
       </div>
 
       <div className="topbar-actions">
+        <button
+          className="topbar-icon-btn"
+          onClick={undo}
+          disabled={undoCount === 0}
+          title={t('common.undo')}
+        >
+          ↩️
+        </button>
+        <button
+          className="topbar-icon-btn"
+          onClick={redo}
+          disabled={redoCount === 0}
+          title={t('common.redo')}
+        >
+          ↪️
+        </button>
         <SpeedControls />
         <button className="topbar-icon-btn" onClick={onOpenStats} title={t('stats.title')}>
           📊

@@ -111,10 +111,11 @@
 .topbar-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  flex: 0 0 auto;
+  flex: 1 1 100%;
   order: 2;
-  margin-left: auto;
+  justify-content: flex-end;
 }
 
 @media (min-width: 720px) {
@@ -134,6 +135,8 @@
   }
   .topbar-actions {
     order: 0;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
     margin-left: 0;
     gap: 8px;
   }
@@ -150,6 +153,9 @@
   font-size: 16px;
   min-height: 38px;
   min-width: 38px;
+}
+.topbar-icon-btn:disabled {
+  opacity: 0.35;
 }
 
 /* ---------- Speed / language ---------- */
@@ -342,14 +348,42 @@
   font-weight: 700;
   font-size: 13px;
 }
-.info-chip-demolish {
+.info-chip-rich {
+  min-width: 190px;
+}
+.info-chip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-chip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.info-chip-actions {
+  display: flex;
+  gap: 6px;
+}
+.info-chip-demolish,
+.info-chip-move {
+  flex: 1;
   border: none;
-  background: var(--danger);
-  color: #fff;
   border-radius: 6px;
   padding: 5px 8px;
   font-size: 12px;
   font-weight: 600;
+}
+.info-chip-demolish {
+  background: var(--danger);
+  color: #fff;
+}
+.info-chip-move {
+  background: var(--panel-bg-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .tool-cancel-btn {
@@ -629,6 +663,9 @@
   font-weight: 700;
   margin-top: 8px;
 }
+.primary-btn:disabled {
+  opacity: 0.4;
+}
 .danger-btn {
   background: var(--danger);
   color: #fff;
@@ -836,5 +873,68 @@
 .pricing-hint {
   color: var(--text-muted);
   font-size: 12px;
+  margin: 0 0 6px;
+}
+
+/* ---------- Bank / marketing / events ---------- */
+.bank-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.bank-controls input {
+  flex: 1 1 100px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-bg-alt);
+  color: var(--text);
+}
+.bank-controls button {
+  border: 1px solid var(--border);
+  background: var(--panel-bg-alt);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.bank-controls button:disabled {
+  opacity: 0.4;
+}
+
+.events-aftermath {
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.event-card {
+  border: 1px solid var(--border);
+  background: var(--panel-bg-alt);
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.event-card-title {
+  font-weight: 700;
+  font-size: 13px;
+}
+.event-card p {
   margin: 0;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  flex: 1;
+}
+.event-card .danger-btn {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 6px 10px;
 }

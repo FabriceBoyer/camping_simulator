@@ -6,13 +6,20 @@
     "money": "Cash",
     "satisfaction": "Satisfaction",
     "income": "Income",
-    "upkeep": "Expenses"
+    "upkeep": "Expenses",
+    "weather": "Weather"
   },
   "season": {
     "spring": "Spring",
     "summer": "Summer",
     "autumn": "Autumn",
     "winter": "Winter"
+  },
+  "weather": {
+    "sunny": "Sunny",
+    "cloudy": "Cloudy",
+    "rain": "Rain",
+    "storm": "Storm"
   },
   "speed": {
     "pause": "Pause",
@@ -78,7 +85,10 @@
     "load": "Load",
     "delete": "Delete",
     "new": "New game",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "undo": "Undo",
+    "redo": "Redo",
+    "trigger": "Trigger"
   },
   "toast": {
     "notEnoughMoney": "Not enough money",
@@ -109,6 +119,46 @@
     "newGuestsToday": "New guests",
     "pricing": "Pricing",
     "pricingHint": "Raising prices increases income per guest but lowers demand and satisfaction; lowering them attracts more campers."
+  },
+  "bank": {
+    "title": "Bank",
+    "debt": "Current debt",
+    "interestNote": "Interest: 2% per day, compounded on the debt. Nothing is auto-deducted from cash — you repay manually.",
+    "amountPlaceholder": "Amount",
+    "takeLoan": "Borrow",
+    "repayLoan": "Repay",
+    "maxDebt": "Maximum debt: {{max}} €",
+    "loanCapReached": "Borrowing limit reached"
+  },
+  "marketing": {
+    "title": "Marketing",
+    "hint": "A {{cost}} € campaign boosts demand by 30% for {{days}} days.",
+    "start": "Launch a campaign",
+    "active": "Campaign active for {{days}} more day(s)",
+    "inactive": "No campaign running"
+  },
+  "events": {
+    "title": "Special events",
+    "hint": "Trigger a disaster to spice things up (guaranteed damage and satisfaction loss).",
+    "fire": "Fire",
+    "fireDesc": "Destroys 1 to 3 buildings, sharp satisfaction drop.",
+    "tornado": "Tornado",
+    "tornadoDesc": "Destroys 2 to 5 scattered buildings and costs cleanup fees.",
+    "volcano": "Volcanic eruption",
+    "volcanoDesc": "Major devastation: up to 6 buildings destroyed and heavy cleanup costs.",
+    "occurred": "Disaster! The campsite has been hit.",
+    "aftermath": "Aftermath: {{days}} day(s) left, reduced demand",
+    "none": "No event in progress"
+  },
+  "buildingInfo": {
+    "category": "Category",
+    "cost": "Build cost",
+    "income": "Income/day",
+    "upkeep": "Upkeep/day",
+    "satisfaction": "Satisfaction",
+    "status": "Status",
+    "occupied": "Occupied until day {{day}}",
+    "vacant": "Vacant"
   },
   "saveLoad": {
     "title": "Saved games",

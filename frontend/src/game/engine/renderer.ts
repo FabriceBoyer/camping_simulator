@@ -137,6 +137,32 @@ function drawGuest(ctx: CanvasRenderingContext2D, guest: WalkingGuest, timeMs: n
   ctx.stroke();
 }
 
+function drawRain(
+  ctx: CanvasRenderingContext2D,
+  cssWidth: number,
+  cssHeight: number,
+  timeMs: number,
+  intensity: number,
+) {
+  const dropCount = Math.round(40 * intensity);
+  ctx.save();
+  ctx.strokeStyle = `rgba(190,215,235,${0.35 * intensity})`;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < dropCount; i++) {
+    const seedX = seeded(i * 12.9);
+    const seedSpeed = 0.6 + seeded(i * 7.3) * 0.6;
+    const fallDuration = 700 / seedSpeed;
+    const t = ((timeMs + i * 137) % fallDuration) / fallDuration;
+    const x = seedX * (cssWidth + 60) - 30 + t * 18;
+    const y = t * (cssHeight + 40) - 20;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 5, y + 12);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 export interface RenderInput {
   gridSize: number;
   terrain: TerrainType[][];
@@ -145,6 +171,7 @@ export interface RenderInput {
   guests: WalkingGuest[];
   timeMs: number;
   movingId?: string | null;
+  weather?: 'sunny' | 'cloudy' | 'rain' | 'storm';
 }
 
 export function renderScene(
@@ -229,6 +256,10 @@ export function renderScene(
   }
 
   ctx.restore();
+
+  if (input.weather === 'rain' || input.weather === 'storm') {
+    drawRain(ctx, cssWidth, cssHeight, timeMs, input.weather === 'storm' ? 1.6 : 1);
+  }
 }
 
 export { TILE_WIDTH, TILE_HEIGHT };

@@ -2,10 +2,14 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { BUILDINGS_BY_ID, TERRAIN_COST } from '../data/buildings';
 import { DAYS_PER_SEASON, SEASON_ORDER } from '../data/terrain';
+import { DISASTERS_BY_TYPE } from '../data/events';
+import { WEATHER_DEMAND_MULT, WEATHER_SATISFACTION_DELTA, rollWeather } from '../data/weather';
 import { createInitialTerrain } from '../sim/mapgen';
 import { simulateDay } from '../sim/simulation';
 import { canPaintTerrain, canPlaceBuilding, inBounds, occupancyWithoutObject } from '../engine/validity';
 import type {
+  ActiveEvent,
+  DisasterType,
   HistoryPoint,
   PlacedObject,
   Season,
@@ -13,15 +17,24 @@ import type {
   StaffType,
   TerrainType,
   ToolMode,
+  Weather,
 } from '../types';
 
 export const GRID_SIZE = 28;
 const STARTING_MONEY = 8000;
 const MAX_HISTORY = 90;
+const MAX_UNDO = 40;
 const SAVE_KEY = 'camping-simulator-current-game';
 
+const LOAN_MAX_DEBT = 6000;
+const LOAN_MIN_AMOUNT = 500;
+const LOAN_DAILY_INTEREST = 0.02;
+const MARKETING_COST = 400;
+const MARKETING_DURATION_DAYS = 5;
+const MARKETING_DEMAND_MULT = 1.3;
+
 export interface SerializedGame {
-  version: 2;
+  version: 3;
   gridSize: number;
   terrain: TerrainType[][];
   objects: Record<string, PlacedObject>;
@@ -33,6 +46,23 @@ export interface SerializedGame {
   staff: StaffMember[];
   history: HistoryPoint[];
   priceMultiplier: number;
+  weather: Weather;
+  activeEvent: ActiveEvent | null;
+  marketingDaysRemaining: number;
+  debt: number;
+}
+
+interface EditableSnapshot {
+  terrain: TerrainType[][];
+  objects: Record<string, PlacedObject>;
+  occupancy: Record<string, string>;
+  money: number;
+  staff: StaffMember[];
+  priceMultiplier: number;
+  debt: number;
+  weather: Weather;
+  activeEvent: ActiveEvent | null;
+  marketingDaysRemaining: number;
 }
 
 interface GameState {
@@ -52,6 +82,13 @@ interface GameState {
   gameOver: boolean;
   negativeStreak: number;
   priceMultiplier: number;
+  weather: Weather;
+  activeEvent: ActiveEvent | null;
+  marketingDaysRemaining: number;
+  debt: number;
+
+  undoStack: EditableSnapshot[];
+  redoStack: EditableSnapshot[];
 
   lastIncome: number;
   lastUpkeep: number;
@@ -74,6 +111,12 @@ interface GameState {
   setPriceMultiplier: (value: number) => void;
   hireStaff: (type: StaffType) => void;
   fireStaff: (id: string) => void;
+  takeLoan: (amount: number) => void;
+  repayLoan: (amount: number) => void;
+  startMarketingCampaign: () => void;
+  triggerDisaster: (type: DisasterType) => void;
+  undo: () => void;
+  redo: () => void;
   resetGame: () => void;
   loadFromSave: (save: SerializedGame) => void;
   serialize: () => SerializedGame;
@@ -98,6 +141,32 @@ function footprintCells(x: number, y: number, w: number, h: number): [number, nu
   return cells;
 }
 
+function snapshotOf(s: {
+  terrain: TerrainType[][];
+  objects: Record<string, PlacedObject>;
+  occupancy: Record<string, string>;
+  money: number;
+  staff: StaffMember[];
+  priceMultiplier: number;
+  debt: number;
+  weather: Weather;
+  activeEvent: ActiveEvent | null;
+  marketingDaysRemaining: number;
+}): EditableSnapshot {
+  return {
+    terrain: s.terrain,
+    objects: s.objects,
+    occupancy: s.occupancy,
+    money: s.money,
+    staff: s.staff,
+    priceMultiplier: s.priceMultiplier,
+    debt: s.debt,
+    weather: s.weather,
+    activeEvent: s.activeEvent,
+    marketingDaysRemaining: s.marketingDaysRemaining,
+  };
+}
+
 function initialFields() {
   return {
     gridSize: GRID_SIZE,
@@ -116,6 +185,12 @@ function initialFields() {
     gameOver: false,
     negativeStreak: 0,
     priceMultiplier: 1,
+    weather: 'sunny' as Weather,
+    activeEvent: null as ActiveEvent | null,
+    marketingDaysRemaining: 0,
+    debt: 0,
+    undoStack: [] as EditableSnapshot[],
+    redoStack: [] as EditableSnapshot[],
     lastIncome: 0,
     lastUpkeep: 0,
     lastNewGuests: 0,
@@ -138,7 +213,10 @@ export const useGameStore = create<GameState>()(
 
       dismissToast: () => set({ toast: null }),
 
-      setPriceMultiplier: (value) => set({ priceMultiplier: Math.round(Math.max(0.5, Math.min(2, value)) * 20) / 20 }),
+      setPriceMultiplier: (value) =>
+        // Deliberately not undoable: it's dragged continuously, so pushing a
+        // snapshot per tick would flood the undo stack with noise.
+        set({ priceMultiplier: Math.round(Math.max(0.5, Math.min(2, value)) * 20) / 20 }),
 
       demolishObject: (id) => {
         const state = get();
@@ -152,7 +230,13 @@ export const useGameStore = create<GameState>()(
         const nextObjects = { ...state.objects };
         delete nextObjects[id];
         const refund = Math.round(def.cost * 0.3);
-        set({ objects: nextObjects, occupancy: nextOccupancy, money: state.money + refund });
+        set({
+          objects: nextObjects,
+          occupancy: nextOccupancy,
+          money: state.money + refund,
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
       },
 
       moveObject: (id, x, y) => {
@@ -172,6 +256,8 @@ export const useGameStore = create<GameState>()(
         set({
           objects: { ...state.objects, [id]: { ...obj, x, y } },
           occupancy: nextOccupancy,
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
         });
         return true;
       },
@@ -181,7 +267,7 @@ export const useGameStore = create<GameState>()(
         if (!inBounds(x, y, state.gridSize) || state.gameOver) return;
         const tool = state.tool;
 
-        if (tool.kind === 'select') return;
+        if (tool.kind === 'select' || tool.kind === 'move') return;
 
         if (tool.kind === 'bulldoze') {
           const objId = state.occupancy[key(x, y)];
@@ -203,7 +289,12 @@ export const useGameStore = create<GameState>()(
           if (state.terrain[y][x] === tool.terrain) return;
           const nextTerrain = state.terrain.map((row) => row.slice());
           nextTerrain[y][x] = tool.terrain;
-          set({ terrain: nextTerrain, money: state.money - cost });
+          set({
+            terrain: nextTerrain,
+            money: state.money - cost,
+            undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+            redoStack: [],
+          });
           return;
         }
 
@@ -227,6 +318,8 @@ export const useGameStore = create<GameState>()(
             objects: { ...state.objects, [id]: newObj },
             occupancy: nextOccupancy,
             money: state.money - def.cost,
+            undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+            redoStack: [],
           });
         }
       },
@@ -234,6 +327,15 @@ export const useGameStore = create<GameState>()(
       tick: () => {
         const state = get();
         if (state.gameOver) return;
+
+        const eventDef = state.activeEvent ? DISASTERS_BY_TYPE[state.activeEvent.type] : null;
+        const externalDemandMultiplier =
+          WEATHER_DEMAND_MULT[state.weather] *
+          (eventDef ? eventDef.demandMultDuringAftermath : 1) *
+          (state.marketingDaysRemaining > 0 ? MARKETING_DEMAND_MULT : 1);
+        const externalSatisfactionDelta =
+          WEATHER_SATISFACTION_DELTA[state.weather] + (state.activeEvent ? -3 : 0);
+
         const result = simulateDay(
           {
             objects: state.objects,
@@ -242,6 +344,8 @@ export const useGameStore = create<GameState>()(
             satisfaction: state.satisfaction,
             staff: state.staff,
             priceMultiplier: state.priceMultiplier,
+            externalDemandMultiplier,
+            externalSatisfactionDelta,
           },
           state.season,
         );
@@ -271,6 +375,15 @@ export const useGameStore = create<GameState>()(
         const negativeStreak = result.money < 0 ? state.negativeStreak + 1 : 0;
         const gameOver = negativeStreak >= 14;
 
+        const nextActiveEvent: ActiveEvent | null = state.activeEvent
+          ? state.activeEvent.daysRemaining - 1 > 0
+            ? { type: state.activeEvent.type, daysRemaining: state.activeEvent.daysRemaining - 1 }
+            : null
+          : null;
+        const nextMarketingDays = Math.max(0, state.marketingDaysRemaining - 1);
+        const nextWeather = rollWeather(nextSeason);
+        const nextDebt = state.debt > 0 ? Math.round(state.debt * (1 + LOAN_DAILY_INTEREST)) : 0;
+
         set({
           objects: result.objects,
           money: result.money,
@@ -291,6 +404,10 @@ export const useGameStore = create<GameState>()(
           negativeStreak,
           gameOver,
           speed: gameOver ? 0 : state.speed,
+          activeEvent: nextActiveEvent,
+          marketingDaysRemaining: nextMarketingDays,
+          weather: nextWeather,
+          debt: nextDebt,
         });
       },
 
@@ -298,12 +415,118 @@ export const useGameStore = create<GameState>()(
 
       hireStaff: (type) => {
         const state = get();
-        set({ staff: [...state.staff, { id: makeId(), type }] });
+        set({
+          staff: [...state.staff, { id: makeId(), type }],
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
       },
 
       fireStaff: (id) => {
         const state = get();
-        set({ staff: state.staff.filter((s) => s.id !== id) });
+        set({
+          staff: state.staff.filter((s) => s.id !== id),
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
+      },
+
+      takeLoan: (amount) => {
+        const state = get();
+        const capped = Math.min(amount, LOAN_MAX_DEBT - state.debt);
+        if (capped < LOAN_MIN_AMOUNT) {
+          set({ toast: 'bank.loanCapReached' });
+          return;
+        }
+        set({
+          money: state.money + capped,
+          debt: state.debt + capped,
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
+      },
+
+      repayLoan: (amount) => {
+        const state = get();
+        const capped = Math.max(0, Math.min(amount, state.debt, state.money));
+        if (capped <= 0) return;
+        set({
+          money: state.money - capped,
+          debt: state.debt - capped,
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
+      },
+
+      startMarketingCampaign: () => {
+        const state = get();
+        if (state.money < MARKETING_COST) {
+          set({ toast: 'toast.notEnoughMoney' });
+          return;
+        }
+        set({
+          money: state.money - MARKETING_COST,
+          marketingDaysRemaining: MARKETING_DURATION_DAYS,
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
+      },
+
+      triggerDisaster: (type) => {
+        const state = get();
+        const def = DISASTERS_BY_TYPE[type];
+        if (!def) return;
+        const candidates = Object.values(state.objects);
+        const destroyCount = Math.min(
+          candidates.length,
+          def.minDestroyed + Math.floor(Math.random() * (def.maxDestroyed - def.minDestroyed + 1)),
+        );
+        const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+        const toDestroy = shuffled.slice(0, destroyCount);
+
+        const nextObjects = { ...state.objects };
+        const nextOccupancy = { ...state.occupancy };
+        for (const obj of toDestroy) {
+          const objDef = BUILDINGS_BY_ID[obj.defId];
+          if (!objDef) continue;
+          for (const [cx, cy] of footprintCells(obj.x, obj.y, objDef.w, objDef.h)) {
+            delete nextOccupancy[key(cx, cy)];
+          }
+          delete nextObjects[obj.id];
+        }
+
+        set({
+          objects: nextObjects,
+          occupancy: nextOccupancy,
+          money: state.money - def.moneyHit,
+          satisfaction: Math.max(0, state.satisfaction - def.satisfactionHit),
+          activeEvent: { type, daysRemaining: def.durationDays },
+          toast: 'events.occurred',
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+          redoStack: [],
+        });
+      },
+
+      undo: () => {
+        const state = get();
+        if (state.undoStack.length === 0) return;
+        const prev = state.undoStack[state.undoStack.length - 1];
+        set({
+          ...prev,
+          undoStack: state.undoStack.slice(0, -1),
+          redoStack: [...state.redoStack, snapshotOf(state)].slice(-MAX_UNDO),
+        });
+      },
+
+      redo: () => {
+        const state = get();
+        if (state.redoStack.length === 0) return;
+        const next = state.redoStack[state.redoStack.length - 1];
+        set({
+          ...next,
+          redoStack: state.redoStack.slice(0, -1),
+          undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
+        });
       },
 
       resetGame: () => set(initialFields()),
@@ -330,6 +553,12 @@ export const useGameStore = create<GameState>()(
           staff: save.staff,
           history: save.history,
           priceMultiplier: save.priceMultiplier ?? 1,
+          weather: save.weather ?? 'sunny',
+          activeEvent: save.activeEvent ?? null,
+          marketingDaysRemaining: save.marketingDaysRemaining ?? 0,
+          debt: save.debt ?? 0,
+          undoStack: [],
+          redoStack: [],
           speed: 1,
           tool: { kind: 'select' },
           gameOver: false,
@@ -341,7 +570,7 @@ export const useGameStore = create<GameState>()(
       serialize: () => {
         const state = get();
         return {
-          version: 2,
+          version: 3,
           gridSize: state.gridSize,
           terrain: state.terrain,
           objects: state.objects,
@@ -353,6 +582,10 @@ export const useGameStore = create<GameState>()(
           staff: state.staff,
           history: state.history,
           priceMultiplier: state.priceMultiplier,
+          weather: state.weather,
+          activeEvent: state.activeEvent,
+          marketingDaysRemaining: state.marketingDaysRemaining,
+          debt: state.debt,
         };
       },
     }),
@@ -375,6 +608,10 @@ export const useGameStore = create<GameState>()(
         gameOver: state.gameOver,
         negativeStreak: state.negativeStreak,
         priceMultiplier: state.priceMultiplier,
+        weather: state.weather,
+        activeEvent: state.activeEvent,
+        marketingDaysRemaining: state.marketingDaysRemaining,
+        debt: state.debt,
         lastIncome: state.lastIncome,
         lastUpkeep: state.lastUpkeep,
         lastNewGuests: state.lastNewGuests,
@@ -384,6 +621,7 @@ export const useGameStore = create<GameState>()(
         lastStaffWages: state.lastStaffWages,
         lastOccupiedCount: state.lastOccupiedCount,
         lastDemand: state.lastDemand,
+        // undoStack/redoStack intentionally excluded: transient, per-session only.
       }),
     },
   ),

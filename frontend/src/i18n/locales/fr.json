@@ -6,13 +6,20 @@
     "money": "Trésorerie",
     "satisfaction": "Satisfaction",
     "income": "Revenus",
-    "upkeep": "Dépenses"
+    "upkeep": "Dépenses",
+    "weather": "Météo"
   },
   "season": {
     "spring": "Printemps",
     "summer": "Été",
     "autumn": "Automne",
     "winter": "Hiver"
+  },
+  "weather": {
+    "sunny": "Ensoleillé",
+    "cloudy": "Nuageux",
+    "rain": "Pluie",
+    "storm": "Orage"
   },
   "speed": {
     "pause": "Pause",
@@ -78,7 +85,10 @@
     "load": "Charger",
     "delete": "Supprimer",
     "new": "Nouvelle partie",
-    "loading": "Chargement…"
+    "loading": "Chargement…",
+    "undo": "Annuler l'action",
+    "redo": "Rétablir l'action",
+    "trigger": "Déclencher"
   },
   "toast": {
     "notEnoughMoney": "Fonds insuffisants",
@@ -109,6 +119,46 @@
     "newGuestsToday": "Nouveaux campeurs",
     "pricing": "Tarification",
     "pricingHint": "Augmenter les prix accroît les revenus par client mais réduit la demande et la satisfaction ; les baisser attire davantage de campeurs."
+  },
+  "bank": {
+    "title": "Banque",
+    "debt": "Dette actuelle",
+    "interestNote": "Intérêts : 2 % par jour, capitalisés sur la dette. Aucun prélèvement automatique sur la trésorerie — à vous de rembourser.",
+    "amountPlaceholder": "Montant",
+    "takeLoan": "Emprunter",
+    "repayLoan": "Rembourser",
+    "maxDebt": "Dette maximale : {{max}} €",
+    "loanCapReached": "Plafond d'emprunt atteint"
+  },
+  "marketing": {
+    "title": "Marketing",
+    "hint": "Une campagne de {{cost}} € booste la demande de 30 % pendant {{days}} jours.",
+    "start": "Lancer une campagne",
+    "active": "Campagne active encore {{days}} jour(s)",
+    "inactive": "Aucune campagne en cours"
+  },
+  "events": {
+    "title": "Événements spéciaux",
+    "hint": "Déclenchez une catastrophe pour pimenter la partie (dégâts et perte de satisfaction garantis).",
+    "fire": "Incendie",
+    "fireDesc": "Détruit 1 à 3 bâtiments, forte perte de satisfaction.",
+    "tornado": "Tornade",
+    "tornadoDesc": "Détruit 2 à 5 bâtiments dispersés et cause des frais de nettoyage.",
+    "volcano": "Éruption volcanique",
+    "volcanoDesc": "Dévastation majeure : jusqu'à 6 bâtiments détruits et gros frais de nettoyage.",
+    "occurred": "Catastrophe ! Le camping est touché.",
+    "aftermath": "Séquelles : {{days}} jour(s) restant(s), demande réduite",
+    "none": "Aucun événement en cours"
+  },
+  "buildingInfo": {
+    "category": "Catégorie",
+    "cost": "Coût de construction",
+    "income": "Revenu/jour",
+    "upkeep": "Entretien/jour",
+    "satisfaction": "Satisfaction",
+    "status": "Statut",
+    "occupied": "Occupé jusqu'au jour {{day}}",
+    "vacant": "Libre"
   },
   "saveLoad": {
     "title": "Sauvegardes",

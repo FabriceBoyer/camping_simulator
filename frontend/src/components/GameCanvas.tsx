@@ -7,6 +7,7 @@ import { screenToGrid } from '../game/engine/coords';
 import { renderScene, type HoverPreview } from '../game/engine/renderer';
 import { spawnGuest, stepGuests, type WalkingGuest } from '../game/engine/guests';
 import { vibrate } from '../game/engine/haptics';
+import BuildingInfoPanel from './ui/BuildingInfoPanel';
 import type { Camera, PlacedObject } from '../game/types';
 
 const MAX_GUESTS = 36;
@@ -77,7 +78,7 @@ export default function GameCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const { terrain, objects, gridSize } = useGameStore.getState();
+    const { terrain, objects, gridSize, weather } = useGameStore.getState();
     renderScene(ctx, cameraRef.current, sizeRef.current.w, sizeRef.current.h, {
       gridSize,
       terrain,
@@ -86,6 +87,7 @@ export default function GameCanvas() {
       guests: guestsRef.current,
       timeMs: performance.now(),
       movingId: movingRef.current?.id ?? null,
+      weather,
     });
   }, []);
 
@@ -94,7 +96,8 @@ export default function GameCanvas() {
     lastStepRef.current = performance.now();
     const loop = (t: number) => {
       const state = useGameStore.getState();
-      if (guestsRef.current.length === 0 && !hasAmbientAnimatable(state.objects)) {
+      const isRaining = state.weather === 'rain' || state.weather === 'storm';
+      if (guestsRef.current.length === 0 && !hasAmbientAnimatable(state.objects) && !isRaining) {
         rafRef.current = null;
         return;
       }
@@ -120,7 +123,8 @@ export default function GameCanvas() {
     while (guests.length > target) {
       guests.pop();
     }
-    if (guests.length > 0 || hasAmbientAnimatable(state.objects)) ensureAnimationLoop();
+    const isRaining = state.weather === 'rain' || state.weather === 'storm';
+    if (guests.length > 0 || hasAmbientAnimatable(state.objects) || isRaining) ensureAnimationLoop();
   }, [ensureAnimationLoop]);
 
   const getPos = useCallback((e: PointerEvent | React.PointerEvent) => {
@@ -458,8 +462,6 @@ export default function GameCanvas() {
       : tool.kind === 'bulldoze'
         ? 'not-allowed'
         : 'crosshair';
-  const def = selectedInfo ? BUILDINGS_BY_ID[selectedInfo.defId] : null;
-
   return (
     <div ref={wrapRef} className="game-canvas-wrap">
       <div className="sky-clouds" aria-hidden="true">
@@ -477,25 +479,13 @@ export default function GameCanvas() {
           ✕ <span>{t('common.cancel')}</span>
         </button>
       )}
-      {def && selectedInfo && (
-        <div
-          className="info-chip"
-          style={{ left: selectedInfo.sx, top: selectedInfo.sy }}
-        >
-          <div className="info-chip-title">
-            <span>{def.icon}</span> {t(def.nameKey)}
-          </div>
-          <button
-            className="info-chip-demolish"
-            onClick={() => {
-              useGameStore.getState().demolishObject(selectedInfo.id);
-              vibrate(10);
-              setSelectedInfo(null);
-            }}
-          >
-            🗑️ {t('common.demolish')}
-          </button>
-        </div>
+      {selectedInfo && (
+        <BuildingInfoPanel
+          objectId={selectedInfo.id}
+          sx={selectedInfo.sx}
+          sy={selectedInfo.sy}
+          onClose={() => setSelectedInfo(null)}
+        />
       )}
     </div>
   );
