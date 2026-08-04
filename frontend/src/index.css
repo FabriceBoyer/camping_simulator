@@ -10,7 +10,9 @@
   --danger: #c0392b;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   --topbar-h: 56px;
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --sans:
+    system-ui, 'Segoe UI', Roboto, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji', sans-serif;
   color-scheme: light dark;
   font: 15px/1.4 var(--sans);
   -webkit-font-smoothing: antialiased;

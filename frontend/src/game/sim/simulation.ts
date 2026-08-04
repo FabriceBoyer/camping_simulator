@@ -17,6 +17,7 @@ export interface SimInput {
   day: number;
   satisfaction: number;
   staff: StaffMember[];
+  priceMultiplier: number;
 }
 
 export interface SimResult {
@@ -28,10 +29,17 @@ export interface SimResult {
   occupancyRate: number;
   newGuests: number;
   pitchCount: number;
+  occupiedCount: number;
+  sanitaryCount: number;
+  pitchIncome: number;
+  amenityIncome: number;
+  buildingUpkeep: number;
+  staffWages: number;
+  demand: number;
 }
 
 export function simulateDay(input: SimInput, season: Season): SimResult {
-  const { objects, money, day, satisfaction, staff } = input;
+  const { objects, money, day, satisfaction, staff, priceMultiplier } = input;
   const allObjects = Object.values(objects);
   const pitchObjects = allObjects.filter((o) => BUILDINGS_BY_ID[o.defId]?.category === 'pitch');
   const otherObjects = allObjects.filter((o) => BUILDINGS_BY_ID[o.defId]?.category !== 'pitch');
@@ -43,9 +51,10 @@ export function simulateDay(input: SimInput, season: Season): SimResult {
   const staffSatisfaction = staff.reduce((sum, s) => sum + STAFF_DEFS[s.type].satisfaction, 0);
   const sanitaryCount = allObjects.filter((o) => o.defId === 'sanitaryBlock').length;
 
+  const priceDemandFactor = clamp(2 - priceMultiplier, 0.3, 1.6);
   const demandBase = amenitySatisfaction / (pitchObjects.length * 2 + 15);
   const demand =
-    clamp01(demandBase) * SEASON_MULTIPLIER[season] * clamp01(satisfaction / 100 + 0.2);
+    clamp01(demandBase) * SEASON_MULTIPLIER[season] * clamp01(satisfaction / 100 + 0.2) * priceDemandFactor;
 
   let newGuests = 0;
   const nextObjects: Record<string, PlacedObject> = { ...objects };
@@ -69,27 +78,34 @@ export function simulateDay(input: SimInput, season: Season): SimResult {
   ).length;
   const occupancyRate = pitchObjects.length > 0 ? occupiedCount / pitchObjects.length : 0;
 
-  const pitchIncome = Object.values(nextObjects)
-    .filter((o) => BUILDINGS_BY_ID[o.defId]?.category === 'pitch' && o.occupied)
-    .reduce((sum, o) => sum + (BUILDINGS_BY_ID[o.defId]?.income ?? 0), 0);
+  const pitchIncome = Math.round(
+    Object.values(nextObjects)
+      .filter((o) => BUILDINGS_BY_ID[o.defId]?.category === 'pitch' && o.occupied)
+      .reduce((sum, o) => sum + (BUILDINGS_BY_ID[o.defId]?.income ?? 0), 0) * priceMultiplier,
+  );
 
-  const amenityIncome = otherObjects.reduce((sum, o) => {
-    const def = BUILDINGS_BY_ID[o.defId];
-    if (!def || def.income <= 0) return sum;
-    return sum + def.income * occupancyRate;
-  }, 0);
+  const amenityIncome = Math.round(
+    otherObjects.reduce((sum, o) => {
+      const def = BUILDINGS_BY_ID[o.defId];
+      if (!def || def.income <= 0) return sum;
+      return sum + def.income * occupancyRate;
+    }, 0) * priceMultiplier,
+  );
 
-  const income = Math.round(pitchIncome + amenityIncome);
+  const income = pitchIncome + amenityIncome;
 
-  const buildingUpkeep = allObjects.reduce((sum, o) => sum + (BUILDINGS_BY_ID[o.defId]?.upkeep ?? 0), 0);
+  const buildingUpkeep = Math.round(
+    allObjects.reduce((sum, o) => sum + (BUILDINGS_BY_ID[o.defId]?.upkeep ?? 0), 0),
+  );
   const staffWages = staff.reduce((sum, s) => sum + STAFF_DEFS[s.type].wage, 0);
-  const upkeepTotal = Math.round(buildingUpkeep + staffWages);
+  const upkeepTotal = buildingUpkeep + staffWages;
 
   const sanitaryCapacity = sanitaryCount * 10;
   const crowdingPenalty = occupiedCount > sanitaryCapacity ? (occupiedCount - sanitaryCapacity) * 0.6 : 0;
+  const pricePenalty = Math.max(0, priceMultiplier - 1) * 6;
 
   const targetSatisfaction = clamp(
-    35 + amenitySatisfaction * 1.4 + staffSatisfaction * 1.2 - crowdingPenalty,
+    35 + amenitySatisfaction * 1.4 + staffSatisfaction * 1.2 - crowdingPenalty - pricePenalty,
     0,
     100,
   );
@@ -104,5 +120,12 @@ export function simulateDay(input: SimInput, season: Season): SimResult {
     occupancyRate,
     newGuests,
     pitchCount: pitchObjects.length,
+    occupiedCount,
+    sanitaryCount,
+    pitchIncome,
+    amenityIncome,
+    buildingUpkeep,
+    staffWages,
+    demand: clamp01(demand),
   };
 }

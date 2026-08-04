@@ -1,6 +1,3 @@
-# Runtime data (Docker bind-mounted backend saves, see docker-compose.yml)
-/data/
-
 # Dependencies
 node_modules/
 
@@ -8,7 +5,8 @@ node_modules/
 dist/
 dist-ssr/
 
-# Env files (may contain machine-specific overrides)
+# Env files (local overrides, copy .env.example instead)
+/.env
 .env.local
 .env.*.local
 

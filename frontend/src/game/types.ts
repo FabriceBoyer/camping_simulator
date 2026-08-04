@@ -54,6 +54,8 @@ export interface HistoryPoint {
   money: number;
   satisfaction: number;
   occupancyRate: number;
+  income: number;
+  upkeep: number;
 }
 
 export interface Camera {

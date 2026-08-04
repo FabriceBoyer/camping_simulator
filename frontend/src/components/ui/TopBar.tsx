@@ -17,7 +17,12 @@ function satisfactionFace(v: number) {
   return '😞';
 }
 
-export default function TopBar({ onOpenSaves }: { onOpenSaves: () => void }) {
+interface Props {
+  onOpenSaves: () => void;
+  onOpenStats: () => void;
+}
+
+export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
   const { t } = useTranslation();
   const money = useGameStore((s) => s.money);
   const day = useGameStore((s) => s.day);
@@ -49,6 +54,9 @@ export default function TopBar({ onOpenSaves }: { onOpenSaves: () => void }) {
 
       <div className="topbar-actions">
         <SpeedControls />
+        <button className="topbar-icon-btn" onClick={onOpenStats} title={t('stats.title')}>
+          📊
+        </button>
         <button className="topbar-icon-btn" onClick={onOpenSaves} title={t('saveLoad.title')}>
           💾
         </button>

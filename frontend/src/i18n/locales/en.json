@@ -46,10 +46,14 @@
     "restaurant": "Restaurant",
     "playground": "Playground",
     "laundry": "Laundry",
+    "bikeRental": "Bike rental",
+    "minigolf": "Mini-golf",
+    "stage": "Entertainment stage",
     "tree": "Tree",
     "flowerBed": "Flower bed",
     "bench": "Bench",
-    "campfire": "Campfire"
+    "campfire": "Campfire",
+    "lamppost": "Lamppost"
   },
   "staff": {
     "groundskeeper": "Groundskeeper",
@@ -87,18 +91,35 @@
     "message": "Your cash has been negative for too long. The campsite must close down.",
     "restart": "Restart"
   },
+  "stats": {
+    "title": "Campsite statistics",
+    "moneyHistory": "Cash",
+    "satisfactionHistory": "Satisfaction",
+    "occupancyHistory": "Occupancy rate",
+    "day": "day",
+    "todayBreakdown": "Latest day breakdown",
+    "pitchIncome": "Pitch income",
+    "amenityIncome": "Amenity income",
+    "buildingUpkeep": "Building upkeep",
+    "staffWages": "Staff wages",
+    "netToday": "Net balance",
+    "occupiedPitches": "Occupied pitches",
+    "demand": "Current demand",
+    "newGuestsToday": "New guests",
+    "pricing": "Pricing",
+    "pricingHint": "Raising prices increases income per guest but lowers demand and satisfaction; lowering them attracts more campers."
+  },
   "saveLoad": {
     "title": "Saved games",
+    "autosaveHint": "Your game is auto-saved in this browser. Use the slots below to keep several named games.",
     "namePlaceholder": "Save name",
-    "localSaves": "Local saves (browser)",
-    "cloudSaves": "Online saves (server)",
+    "localSaves": "Save slots",
     "empty": "No saves yet",
     "saved": "Game saved",
     "loaded": "Game loaded",
     "deleted": "Save deleted",
-    "serverError": "Server unavailable — use a local save",
     "confirmDelete": "Delete this save?",
-    "confirmNew": "Start a new game? Unsaved progress will be lost.",
+    "confirmNew": "Start a new game? Current progress will be lost if not saved.",
     "updatedAt": "Updated {{date}}"
   }
 }

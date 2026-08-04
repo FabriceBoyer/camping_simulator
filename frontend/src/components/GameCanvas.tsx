@@ -5,7 +5,18 @@ import { BUILDINGS_BY_ID } from '../game/data/buildings';
 import { canPaintTerrain, canPlaceBuilding } from '../game/engine/validity';
 import { screenToGrid } from '../game/engine/coords';
 import { renderScene, type HoverPreview } from '../game/engine/renderer';
-import type { Camera } from '../game/types';
+import { spawnGuest, stepGuests, type WalkingGuest } from '../game/engine/guests';
+import type { Camera, PlacedObject } from '../game/types';
+
+const MAX_GUESTS = 36;
+
+function countOccupiedPitches(objects: Record<string, PlacedObject>): number {
+  let n = 0;
+  for (const obj of Object.values(objects)) {
+    if (obj.occupied && BUILDINGS_BY_ID[obj.defId]?.category === 'pitch') n++;
+  }
+  return n;
+}
 
 interface SelectedInfo {
   id: string;
@@ -42,6 +53,11 @@ export default function GameCanvas() {
   const pinchRef = useRef<{ prevDist: number } | null>(null);
   const tapStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
+  const guestsRef = useRef<WalkingGuest[]>([]);
+  const rafRef = useRef<number | null>(null);
+  const lastStepRef = useRef<number>(0);
+  const guestIdCounterRef = useRef(0);
+
   const tool = useGameStore((s) => s.tool);
   const [selectedInfo, setSelectedInfo] = useState<SelectedInfo | null>(null);
 
@@ -56,8 +72,44 @@ export default function GameCanvas() {
       terrain,
       objects,
       hover: hoverRef.current,
+      guests: guestsRef.current,
+      timeMs: performance.now(),
     });
   }, []);
+
+  const ensureGuestLoop = useCallback(() => {
+    if (rafRef.current !== null) return;
+    lastStepRef.current = performance.now();
+    const loop = (t: number) => {
+      if (guestsRef.current.length === 0) {
+        rafRef.current = null;
+        return;
+      }
+      const dt = Math.min(0.25, (t - lastStepRef.current) / 1000);
+      if (dt >= 0.06) {
+        lastStepRef.current = t;
+        const state = useGameStore.getState();
+        stepGuests(guestsRef.current, dt, state.gridSize, state.terrain, state.occupancy, t);
+        draw();
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  }, [draw]);
+
+  const syncGuests = useCallback(() => {
+    const state = useGameStore.getState();
+    const target = Math.min(MAX_GUESTS, countOccupiedPitches(state.objects));
+    const guests = guestsRef.current;
+    while (guests.length < target) {
+      guestIdCounterRef.current += 1;
+      guests.push(spawnGuest(`g${guestIdCounterRef.current}`, state.gridSize, state.terrain, state.occupancy));
+    }
+    while (guests.length > target) {
+      guests.pop();
+    }
+    if (guests.length > 0) ensureGuestLoop();
+  }, [ensureGuestLoop]);
 
   const getPos = useCallback((e: PointerEvent | React.PointerEvent) => {
     const canvas = canvasRef.current!;
@@ -131,20 +183,40 @@ export default function GameCanvas() {
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
     resize();
+    // On first mount the container may not have its final layout size yet
+    // (fonts/flex settling). Re-measure a couple of times via rAF as a
+    // defensive fallback in case the ResizeObserver callback is delayed or
+    // coalesced away by the browser.
+    const raf1 = requestAnimationFrame(() => {
+      resize();
+      requestAnimationFrame(resize);
+    });
     window.addEventListener('resize', resize);
     window.addEventListener('orientationchange', resize);
     return () => {
       ro.disconnect();
+      cancelAnimationFrame(raf1);
       window.removeEventListener('resize', resize);
       window.removeEventListener('orientationchange', resize);
     };
   }, [draw]);
 
-  // Redraw whenever game state changes (build/tick/etc).
+  // Redraw whenever game state changes (build/tick/etc), and keep the guest
+  // population roughly matched to how many pitches are currently occupied.
   useEffect(() => {
-    const unsub = useGameStore.subscribe(() => draw());
-    return unsub;
-  }, [draw]);
+    syncGuests();
+    const unsub = useGameStore.subscribe(() => {
+      syncGuests();
+      draw();
+    });
+    return () => {
+      unsub();
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [draw, syncGuests]);
 
   useEffect(() => {
     // Tool changed: clear stale hover/selection.

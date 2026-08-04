@@ -1,28 +1,8 @@
 services:
-  backend:
-    build:
-      context: ./backend
-    image: camping-simulator-backend:local
-    restart: unless-stopped
-    environment:
-      PORT: "8787"
-      ALLOWED_ORIGINS: "http://localhost:8080"
-    volumes:
-      - ./data:/app/data
-    # ports:
-    #   - "8787:8787"
-
   frontend:
     build:
       context: ./frontend
-      args:
-        VITE_API_URL: ""
-    image: camping-simulator-frontend:local
+    image: ${IMAGE_NAME:-camping-simulator-frontend}:${IMAGE_TAG:-local}
     restart: unless-stopped
-    depends_on:
-      - backend
     ports:
-      - "8094:80"
-
-volumes:
-  backend-data:
+      - "${HOST_PORT:-8080}:80"

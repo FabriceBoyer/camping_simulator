@@ -46,10 +46,14 @@
     "restaurant": "Restaurant",
     "playground": "Aire de jeux",
     "laundry": "Laverie",
+    "bikeRental": "Location de vélos",
+    "minigolf": "Mini-golf",
+    "stage": "Scène de spectacle",
     "tree": "Arbre",
     "flowerBed": "Parterre de fleurs",
     "bench": "Banc",
-    "campfire": "Feu de camp"
+    "campfire": "Feu de camp",
+    "lamppost": "Lampadaire"
   },
   "staff": {
     "groundskeeper": "Agent d'entretien",
@@ -87,18 +91,35 @@
     "message": "Votre trésorerie est négative depuis trop longtemps. Le camping doit fermer ses portes.",
     "restart": "Recommencer"
   },
+  "stats": {
+    "title": "Statistiques du camping",
+    "moneyHistory": "Trésorerie",
+    "satisfactionHistory": "Satisfaction",
+    "occupancyHistory": "Taux d'occupation",
+    "day": "jour",
+    "todayBreakdown": "Détail du dernier jour",
+    "pitchIncome": "Revenus des emplacements",
+    "amenityIncome": "Revenus des équipements",
+    "buildingUpkeep": "Entretien des bâtiments",
+    "staffWages": "Salaires du personnel",
+    "netToday": "Solde net",
+    "occupiedPitches": "Emplacements occupés",
+    "demand": "Demande actuelle",
+    "newGuestsToday": "Nouveaux campeurs",
+    "pricing": "Tarification",
+    "pricingHint": "Augmenter les prix accroît les revenus par client mais réduit la demande et la satisfaction ; les baisser attire davantage de campeurs."
+  },
   "saveLoad": {
     "title": "Sauvegardes",
+    "autosaveHint": "La partie est sauvegardée automatiquement dans ce navigateur. Utilisez les emplacements ci-dessous pour garder plusieurs parties nommées.",
     "namePlaceholder": "Nom de la sauvegarde",
-    "localSaves": "Sauvegardes locales (navigateur)",
-    "cloudSaves": "Sauvegardes en ligne (serveur)",
+    "localSaves": "Emplacements de sauvegarde",
     "empty": "Aucune sauvegarde pour l'instant",
     "saved": "Partie sauvegardée",
     "loaded": "Partie chargée",
     "deleted": "Sauvegarde supprimée",
-    "serverError": "Serveur indisponible — utilisez la sauvegarde locale",
     "confirmDelete": "Supprimer cette sauvegarde ?",
-    "confirmNew": "Démarrer une nouvelle partie ? La progression non sauvegardée sera perdue.",
+    "confirmNew": "Démarrer une nouvelle partie ? La progression actuelle sera perdue si elle n'est pas sauvegardée.",
     "updatedAt": "Modifiée le {{date}}"
   }
 }
