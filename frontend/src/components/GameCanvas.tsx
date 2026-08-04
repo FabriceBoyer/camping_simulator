@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../game/state/store';
 import { BUILDINGS_BY_ID } from '../game/data/buildings';
-import { canPaintTerrain, canPlaceBuilding } from '../game/engine/validity';
+import { canPaintTerrain, canPlaceBuilding, occupancyWithoutObject } from '../game/engine/validity';
 import { screenToGrid } from '../game/engine/coords';
 import { renderScene, type HoverPreview } from '../game/engine/renderer';
 import { spawnGuest, stepGuests, type WalkingGuest } from '../game/engine/guests';
+import { vibrate } from '../game/engine/haptics';
 import type { Camera, PlacedObject } from '../game/types';
 
 const MAX_GUESTS = 36;
@@ -16,6 +17,15 @@ function countOccupiedPitches(objects: Record<string, PlacedObject>): number {
     if (obj.occupied && BUILDINGS_BY_ID[obj.defId]?.category === 'pitch') n++;
   }
   return n;
+}
+
+const AMBIENT_ANIMATED_DEFS = new Set(['campfire', 'pool']);
+
+function hasAmbientAnimatable(objects: Record<string, PlacedObject>): boolean {
+  for (const obj of Object.values(objects)) {
+    if (AMBIENT_ANIMATED_DEFS.has(obj.defId)) return true;
+  }
+  return false;
 }
 
 interface SelectedInfo {
@@ -52,6 +62,7 @@ export default function GameCanvas() {
   const lastPaintedCellRef = useRef<string | null>(null);
   const pinchRef = useRef<{ prevDist: number } | null>(null);
   const tapStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const movingRef = useRef<{ id: string; defId: string; w: number; h: number } | null>(null);
 
   const guestsRef = useRef<WalkingGuest[]>([]);
   const rafRef = useRef<number | null>(null);
@@ -74,22 +85,23 @@ export default function GameCanvas() {
       hover: hoverRef.current,
       guests: guestsRef.current,
       timeMs: performance.now(),
+      movingId: movingRef.current?.id ?? null,
     });
   }, []);
 
-  const ensureGuestLoop = useCallback(() => {
+  const ensureAnimationLoop = useCallback(() => {
     if (rafRef.current !== null) return;
     lastStepRef.current = performance.now();
     const loop = (t: number) => {
-      if (guestsRef.current.length === 0) {
+      const state = useGameStore.getState();
+      if (guestsRef.current.length === 0 && !hasAmbientAnimatable(state.objects)) {
         rafRef.current = null;
         return;
       }
       const dt = Math.min(0.25, (t - lastStepRef.current) / 1000);
       if (dt >= 0.06) {
         lastStepRef.current = t;
-        const state = useGameStore.getState();
-        stepGuests(guestsRef.current, dt, state.gridSize, state.terrain, state.occupancy, t);
+        stepGuests(guestsRef.current, dt, state.gridSize, state.terrain, state.occupancy, state.objects, t);
         draw();
       }
       rafRef.current = requestAnimationFrame(loop);
@@ -108,8 +120,8 @@ export default function GameCanvas() {
     while (guests.length > target) {
       guests.pop();
     }
-    if (guests.length > 0) ensureGuestLoop();
-  }, [ensureGuestLoop]);
+    if (guests.length > 0 || hasAmbientAnimatable(state.objects)) ensureAnimationLoop();
+  }, [ensureAnimationLoop]);
 
   const getPos = useCallback((e: PointerEvent | React.PointerEvent) => {
     const canvas = canvasRef.current!;
@@ -141,6 +153,11 @@ export default function GameCanvas() {
       } else if (currentTool.kind === 'bulldoze') {
         const valid = !!state.occupancy[`${gx},${gy}`];
         hoverRef.current = { x: gx, y: gy, w: 1, h: 1, valid };
+      } else if (currentTool.kind === 'move') {
+        const objId = state.occupancy[`${gx},${gy}`];
+        const obj = objId ? state.objects[objId] : null;
+        const def = obj ? BUILDINGS_BY_ID[obj.defId] : null;
+        hoverRef.current = obj && def ? { x: obj.x, y: obj.y, w: def.w, h: def.h, valid: true } : null;
       } else {
         hoverRef.current = null;
       }
@@ -156,7 +173,14 @@ export default function GameCanvas() {
     const cellKey = `${gx},${gy}`;
     if (lastPaintedCellRef.current === cellKey) return;
     lastPaintedCellRef.current = cellKey;
-    useGameStore.getState().interactAt(gx, gy);
+    const state = useGameStore.getState();
+    const moneyBefore = state.money;
+    state.interactAt(gx, gy);
+    // A short tick confirms the tap landed (money changing is a reliable,
+    // cheap signal of success without threading return values everywhere).
+    if (state.tool.kind === 'build' && useGameStore.getState().money !== moneyBefore) {
+      vibrate(10);
+    }
   }, []);
 
   // Resize handling
@@ -219,8 +243,9 @@ export default function GameCanvas() {
   }, [draw, syncGuests]);
 
   useEffect(() => {
-    // Tool changed: clear stale hover/selection.
+    // Tool changed: clear stale hover/selection/in-progress move.
     hoverRef.current = null;
+    movingRef.current = null;
     setSelectedInfo(null);
     draw();
   }, [tool, draw]);
@@ -231,7 +256,15 @@ export default function GameCanvas() {
     if (!canvas) return;
 
     const onPointerDown = (e: PointerEvent) => {
-      canvas.setPointerCapture(e.pointerId);
+      try {
+        // Can throw (e.g. NotFoundError) in edge cases where the browser
+        // doesn't consider the pointer "active" yet. Capture is just a
+        // reliability nicety for tracking drags outside the canvas bounds —
+        // losing it shouldn't abort the whole gesture.
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
       const { sx, sy } = getPos(e);
       pointersRef.current.set(e.pointerId, { x: sx, y: sy });
       setSelectedInfo(null);
@@ -239,16 +272,43 @@ export default function GameCanvas() {
       if (pointersRef.current.size === 1) {
         const currentTool = useGameStore.getState().tool;
         tapStartRef.current = { x: sx, y: sy, t: performance.now() };
+
         if (currentTool.kind === 'select') {
           dragStartRef.current = { x: sx, y: sy, camX: cameraRef.current.x, camY: cameraRef.current.y };
-        } else {
+        } else if (currentTool.kind === 'move') {
+          const state = useGameStore.getState();
+          const g = screenToGrid(sx, sy, cameraRef.current);
+          const gx = Math.floor(g.x);
+          const gy = Math.floor(g.y);
+          const objId = state.occupancy[`${gx},${gy}`];
+          const obj = objId ? state.objects[objId] : null;
+          const def = obj ? BUILDINGS_BY_ID[obj.defId] : null;
+          if (obj && def) {
+            movingRef.current = { id: obj.id, defId: obj.defId, w: def.w, h: def.h };
+            hoverRef.current = { x: obj.x, y: obj.y, w: def.w, h: def.h, valid: true };
+            draw();
+          } else {
+            // Tapped empty ground in move mode: pan instead of doing nothing.
+            dragStartRef.current = { x: sx, y: sy, camX: cameraRef.current.x, camY: cameraRef.current.y };
+          }
+        } else if (currentTool.kind === 'terrain' || currentTool.kind === 'bulldoze') {
+          // Terrain painting and bulldozing are cheap/reversible-ish, so
+          // dragging across several tiles to affect them all is expected.
           paintingRef.current = true;
           lastPaintedCellRef.current = null;
+          paintCellAt(sx, sy);
+        } else if (currentTool.kind === 'build') {
+          // Place exactly once per gesture. Continuously placing while the
+          // finger drags is what let a single touch spawn many buildings,
+          // especially when zoomed out (each screen pixel covers more grid
+          // cells). If the player wants several, they tap again.
           paintCellAt(sx, sy);
         }
       } else if (pointersRef.current.size === 2) {
         paintingRef.current = false;
         dragStartRef.current = null;
+        movingRef.current = null;
+        hoverRef.current = null;
         const pts = Array.from(pointersRef.current.values());
         pinchRef.current = { prevDist: distance(pts[0], pts[1]) };
       }
@@ -278,6 +338,24 @@ export default function GameCanvas() {
       }
 
       if (pointersRef.current.size === 1) {
+        if (movingRef.current) {
+          const state = useGameStore.getState();
+          const g = screenToGrid(sx, sy, cameraRef.current);
+          const gx = Math.floor(g.x);
+          const gy = Math.floor(g.y);
+          const occWithoutSelf = occupancyWithoutObject(state.occupancy, state.objects, movingRef.current.id);
+          const valid = canPlaceBuilding(
+            movingRef.current.defId,
+            gx,
+            gy,
+            state.terrain,
+            occWithoutSelf,
+            state.gridSize,
+          );
+          hoverRef.current = { x: gx, y: gy, w: movingRef.current.w, h: movingRef.current.h, valid };
+          draw();
+          return;
+        }
         if (dragStartRef.current) {
           const camera = cameraRef.current;
           camera.x = dragStartRef.current.camX + (sx - dragStartRef.current.x);
@@ -303,7 +381,16 @@ export default function GameCanvas() {
 
       if (pointersRef.current.size < 2) pinchRef.current = null;
 
-      if (wasSingle && dragStartRef.current) {
+      if (wasSingle && movingRef.current) {
+        const g = screenToGrid(sx, sy, cameraRef.current);
+        const gx = Math.floor(g.x);
+        const gy = Math.floor(g.y);
+        const moved = useGameStore.getState().moveObject(movingRef.current.id, gx, gy);
+        if (moved) vibrate(12);
+        movingRef.current = null;
+        hoverRef.current = null;
+        draw();
+      } else if (wasSingle && dragStartRef.current) {
         const start = tapStartRef.current;
         const moved = start ? distance({ x: sx, y: sy }, { x: start.x, y: start.y }) : 999;
         if (moved < 8) {
@@ -314,7 +401,13 @@ export default function GameCanvas() {
           const objId = state.occupancy[`${gx},${gy}`];
           if (objId) {
             const obj = state.objects[objId];
-            setSelectedInfo({ id: objId, defId: obj.defId, sx, sy });
+            const { w, h } = sizeRef.current;
+            setSelectedInfo({
+              id: objId,
+              defId: obj.defId,
+              sx: clamp(sx, 90, Math.max(90, w - 90)),
+              sy: clamp(sy, 70, Math.max(70, h - 20)),
+            });
           }
         }
       }
@@ -324,6 +417,7 @@ export default function GameCanvas() {
         paintingRef.current = false;
         lastPaintedCellRef.current = null;
         tapStartRef.current = null;
+        movingRef.current = null;
       }
     };
 
@@ -358,12 +452,31 @@ export default function GameCanvas() {
     };
   }, [draw, getPos, paintCellAt, updateHover]);
 
-  const cursor = tool.kind === 'select' ? 'grab' : 'crosshair';
+  const cursor =
+    tool.kind === 'select' || tool.kind === 'move'
+      ? 'grab'
+      : tool.kind === 'bulldoze'
+        ? 'not-allowed'
+        : 'crosshair';
   const def = selectedInfo ? BUILDINGS_BY_ID[selectedInfo.defId] : null;
 
   return (
     <div ref={wrapRef} className="game-canvas-wrap">
+      <div className="sky-clouds" aria-hidden="true">
+        <span className="cloud cloud-1" />
+        <span className="cloud cloud-2" />
+        <span className="cloud cloud-3" />
+      </div>
       <canvas ref={canvasRef} style={{ cursor }} />
+      {tool.kind !== 'select' && (
+        <button
+          className="tool-cancel-btn"
+          onClick={() => useGameStore.getState().setTool({ kind: 'select' })}
+          title={t('tools.select')}
+        >
+          ✕ <span>{t('common.cancel')}</span>
+        </button>
+      )}
       {def && selectedInfo && (
         <div
           className="info-chip"
@@ -376,6 +489,7 @@ export default function GameCanvas() {
             className="info-chip-demolish"
             onClick={() => {
               useGameStore.getState().demolishObject(selectedInfo.id);
+              vibrate(10);
               setSelectedInfo(null);
             }}
           >

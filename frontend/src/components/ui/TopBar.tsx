@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGameStore } from '../../game/state/store';
 import SpeedControls from './SpeedControls';
@@ -17,6 +18,25 @@ function satisfactionFace(v: number) {
   return '😞';
 }
 
+/** Briefly flashes green/red when a numeric value changes, for a bit of
+ * "alive" feedback on the money counter. */
+function useChangeFlash(value: number): 'up' | 'down' | null {
+  const prevRef = useRef(value);
+  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
+
+  useEffect(() => {
+    const prev = prevRef.current;
+    if (value !== prev) {
+      setFlash(value > prev ? 'up' : 'down');
+      prevRef.current = value;
+      const id = window.setTimeout(() => setFlash(null), 650);
+      return () => window.clearTimeout(id);
+    }
+  }, [value]);
+
+  return flash;
+}
+
 interface Props {
   onOpenSaves: () => void;
   onOpenStats: () => void;
@@ -29,6 +49,7 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
   const year = useGameStore((s) => s.year);
   const season = useGameStore((s) => s.season);
   const satisfaction = useGameStore((s) => s.satisfaction);
+  const moneyFlash = useChangeFlash(Math.round(money));
 
   return (
     <header className="topbar">
@@ -38,7 +59,10 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
       </div>
 
       <div className="topbar-stats">
-        <div className={`stat ${money < 0 ? 'stat-negative' : ''}`} title={t('topbar.money')}>
+        <div
+          className={`stat ${money < 0 ? 'stat-negative' : ''} ${moneyFlash ? `stat-flash-${moneyFlash}` : ''}`}
+          title={t('topbar.money')}
+        >
           💰 {Math.round(money).toLocaleString()} €
         </div>
         <div className="stat" title={t('topbar.satisfaction')}>

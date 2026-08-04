@@ -34,6 +34,7 @@ export default function BuildMenu() {
 
   const isSelect = tool.kind === 'select';
   const isBulldoze = tool.kind === 'bulldoze';
+  const isMove = tool.kind === 'move';
 
   return (
     <div className={`build-menu ${expanded ? 'expanded' : 'collapsed'}`}>
@@ -44,6 +45,9 @@ export default function BuildMenu() {
       <div className="build-menu-modes">
         <button className={isSelect ? 'active' : ''} onClick={() => setTool({ kind: 'select' })}>
           🖐️ <span>{t('tools.select')}</span>
+        </button>
+        <button className={isMove ? 'active' : ''} onClick={() => setTool({ kind: 'move' })}>
+          ✋ <span>{t('tools.move')}</span>
         </button>
         <button className={isBulldoze ? 'active' : ''} onClick={() => setTool({ kind: 'bulldoze' })}>
           🧨 <span>{t('tools.bulldoze')}</span>

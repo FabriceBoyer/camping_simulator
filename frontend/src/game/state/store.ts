@@ -4,7 +4,7 @@ import { BUILDINGS_BY_ID, TERRAIN_COST } from '../data/buildings';
 import { DAYS_PER_SEASON, SEASON_ORDER } from '../data/terrain';
 import { createInitialTerrain } from '../sim/mapgen';
 import { simulateDay } from '../sim/simulation';
-import { canPaintTerrain, canPlaceBuilding, inBounds } from '../engine/validity';
+import { canPaintTerrain, canPlaceBuilding, inBounds, occupancyWithoutObject } from '../engine/validity';
 import type {
   HistoryPoint,
   PlacedObject,
@@ -68,6 +68,7 @@ interface GameState {
   setTool: (tool: ToolMode) => void;
   interactAt: (x: number, y: number) => void;
   demolishObject: (id: string) => void;
+  moveObject: (id: string, x: number, y: number) => boolean;
   tick: () => void;
   setSpeed: (speed: 0 | 1 | 2 | 4) => void;
   setPriceMultiplier: (value: number) => void;
@@ -152,6 +153,27 @@ export const useGameStore = create<GameState>()(
         delete nextObjects[id];
         const refund = Math.round(def.cost * 0.3);
         set({ objects: nextObjects, occupancy: nextOccupancy, money: state.money + refund });
+      },
+
+      moveObject: (id, x, y) => {
+        const state = get();
+        const obj = state.objects[id];
+        if (!obj) return false;
+        const def = BUILDINGS_BY_ID[obj.defId];
+        if (!def) return false;
+        if (obj.x === x && obj.y === y) return true;
+        const occWithoutSelf = occupancyWithoutObject(state.occupancy, state.objects, id);
+        if (!canPlaceBuilding(def.id, x, y, state.terrain, occWithoutSelf, state.gridSize)) {
+          set({ toast: 'toast.badPlacement' });
+          return false;
+        }
+        const nextOccupancy = { ...occWithoutSelf };
+        for (const [cx, cy] of footprintCells(x, y, def.w, def.h)) nextOccupancy[key(cx, cy)] = id;
+        set({
+          objects: { ...state.objects, [id]: { ...obj, x, y } },
+          occupancy: nextOccupancy,
+        });
+        return true;
       },
 
       interactAt: (x, y) => {

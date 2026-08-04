@@ -1,5 +1,5 @@
 import { BUILDINGS_BY_ID } from '../data/buildings';
-import type { TerrainType } from '../types';
+import type { PlacedObject, TerrainType } from '../types';
 
 export function inBounds(x: number, y: number, size: number): boolean {
   return x >= 0 && y >= 0 && x < size && y < size;
@@ -26,6 +26,27 @@ export function canPlaceBuilding(
     }
   }
   return true;
+}
+
+/** Returns a copy of `occupancy` with the given object's own footprint cells
+ * cleared, so it can be validated as a candidate move destination without
+ * colliding with itself. */
+export function occupancyWithoutObject(
+  occupancy: Record<string, string>,
+  objects: Record<string, PlacedObject>,
+  id: string,
+): Record<string, string> {
+  const obj = objects[id];
+  if (!obj) return occupancy;
+  const def = BUILDINGS_BY_ID[obj.defId];
+  if (!def) return occupancy;
+  const next = { ...occupancy };
+  for (let dy = 0; dy < def.h; dy++) {
+    for (let dx = 0; dx < def.w; dx++) {
+      delete next[`${obj.x + dx},${obj.y + dy}`];
+    }
+  }
+  return next;
 }
 
 export function canPaintTerrain(

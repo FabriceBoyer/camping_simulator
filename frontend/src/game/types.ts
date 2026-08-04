@@ -46,6 +46,7 @@ export interface StaffMember {
 export type ToolMode =
   | { kind: 'select' }
   | { kind: 'bulldoze' }
+  | { kind: 'move' }
   | { kind: 'terrain'; terrain: TerrainType }
   | { kind: 'build'; defId: string };
 

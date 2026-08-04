@@ -57,17 +57,26 @@ Ouvre ensuite `http://localhost:8080` (port configurable via `HOST_PORT` dans
 - **Vitesse** : pause / normal / rapide / très rapide.
 - **Sauvegarde** : automatique en continu, plus des emplacements de sauvegarde
   nommés (💾) pour garder plusieurs parties.
+- **Déplacement d'objets** (✋) : reprendre un bâtiment déjà posé et le
+  glisser vers un nouvel emplacement libre, sans avoir à le démolir/reconstruire.
 - **Vie du camping** : les campeurs des emplacements occupés se promènent
-  dans le camping (animation légère, désactivée automatiquement s'il n'y a
-  personne à animer).
+  dans le camping et s'arrêtent parfois pour une activité (baignade à la
+  piscine, assis au coin du feu ou au restaurant, jeu à l'aire de jeux/au
+  mini-golf/à la scène) ; feu de camp et piscine ont une animation continue
+  (flammes, reflets de l'eau) ; nuages qui dérivent en fond. Tout cela reste
+  désactivé tant qu'il n'y a rien à animer, pour préserver la batterie.
 
 ## Contrôles
 
 - **Souris** : clic-glisser pour déplacer la caméra, molette pour zoomer,
-  clic pour construire / peindre / démolir selon l'outil actif.
+  clic pour construire / démolir selon l'outil actif, glisser-déposer pour
+  déplacer un objet en mode ✋.
 - **Tactile (mobile)** : un doigt pour glisser la caméra (mode sélection) ou
-  construire/peindre en continu (autres outils), deux doigts pour
-  pincer-zoomer et déplacer la caméra simultanément.
+  agir avec l'outil actif (un seul objet posé par geste, pour éviter d'en
+  placer plusieurs par erreur en glissant le doigt — peinture de terrain et
+  démolition restent à glisser-continu), deux doigts pour pincer-zoomer et
+  déplacer la caméra simultanément. Un bouton ✕ apparaît en haut à droite du
+  plan pour quitter rapidement l'outil actif.
 
 ## Notes techniques
 

@@ -1,4 +1,7 @@
-import type { TerrainType } from '../types';
+import { BUILDINGS_BY_ID } from '../data/buildings';
+import type { PlacedObject, TerrainType } from '../types';
+
+export type GuestActivity = 'walking' | 'sitting' | 'swimming' | 'playing';
 
 export interface WalkingGuest {
   id: string;
@@ -10,9 +13,23 @@ export interface WalkingGuest {
   color: string;
   bobSeed: number;
   idleUntil: number;
+  /** What the guest is currently doing, for rendering. */
+  activity: GuestActivity;
+  /** What to switch to once the current target is reached. */
+  pendingActivity: GuestActivity;
 }
 
 const GUEST_COLORS = ['#e76f51', '#2a9d8f', '#e9c46a', '#457b9d', '#f4a261', '#9d4edd', '#ef476f'];
+
+const ACTIVITY_SPOTS: Record<string, GuestActivity> = {
+  pool: 'swimming',
+  bench: 'sitting',
+  campfire: 'sitting',
+  restaurant: 'sitting',
+  playground: 'playing',
+  minigolf: 'playing',
+  stage: 'playing',
+};
 
 function isWalkable(
   x: number,
@@ -29,12 +46,33 @@ function isWalkable(
   return true;
 }
 
+function findActivitySpot(
+  objects: Record<string, PlacedObject>,
+): { x: number; y: number; activity: GuestActivity } | null {
+  const candidates = Object.values(objects).filter((o) => ACTIVITY_SPOTS[o.defId]);
+  if (candidates.length === 0) return null;
+  const obj = candidates[Math.floor(Math.random() * candidates.length)];
+  const def = BUILDINGS_BY_ID[obj.defId];
+  if (!def) return null;
+  return {
+    x: obj.x + 0.2 + Math.random() * (def.w - 0.4),
+    y: obj.y + 0.2 + Math.random() * (def.h - 0.4),
+    activity: ACTIVITY_SPOTS[obj.defId],
+  };
+}
+
 function pickTarget(
   from: { x: number; y: number },
   gridSize: number,
   terrain: TerrainType[][],
   occupancy: Record<string, string>,
-): { x: number; y: number } {
+  objects: Record<string, PlacedObject>,
+): { x: number; y: number; activity: GuestActivity } {
+  if (Math.random() < 0.3) {
+    const spot = findActivitySpot(objects);
+    if (spot) return spot;
+  }
+
   const roadTiles: [number, number][] = [];
   if (Math.random() < 0.55) {
     for (let y = 0; y < gridSize; y++) {
@@ -45,7 +83,7 @@ function pickTarget(
   }
   if (roadTiles.length > 0) {
     const [rx, ry] = roadTiles[Math.floor(Math.random() * roadTiles.length)];
-    return { x: rx + 0.5, y: ry + 0.5 };
+    return { x: rx + 0.5, y: ry + 0.5, activity: 'walking' };
   }
   for (let attempt = 0; attempt < 12; attempt++) {
     const radius = 3 + Math.random() * 5;
@@ -53,10 +91,10 @@ function pickTarget(
     const tx = from.x + Math.cos(angle) * radius;
     const ty = from.y + Math.sin(angle) * radius;
     if (isWalkable(tx, ty, gridSize, terrain, occupancy)) {
-      return { x: Math.floor(tx) + 0.5, y: Math.floor(ty) + 0.5 };
+      return { x: Math.floor(tx) + 0.5, y: Math.floor(ty) + 0.5, activity: 'walking' };
     }
   }
-  return { x: from.x, y: from.y };
+  return { x: from.x, y: from.y, activity: 'walking' };
 }
 
 export function spawnGuest(
@@ -76,7 +114,7 @@ export function spawnGuest(
       break;
     }
   }
-  const target = pickTarget({ x, y }, gridSize, terrain, occupancy);
+  const target = pickTarget({ x, y }, gridSize, terrain, occupancy, {});
   return {
     id,
     x,
@@ -87,6 +125,8 @@ export function spawnGuest(
     color: GUEST_COLORS[Math.floor(Math.random() * GUEST_COLORS.length)],
     bobSeed: Math.random() * Math.PI * 2,
     idleUntil: 0,
+    activity: 'walking',
+    pendingActivity: target.activity,
   };
 }
 
@@ -96,22 +136,36 @@ export function stepGuests(
   gridSize: number,
   terrain: TerrainType[][],
   occupancy: Record<string, string>,
+  objects: Record<string, PlacedObject>,
   now: number,
 ) {
   for (const g of guests) {
     if (g.idleUntil > now) continue;
+
     const dx = g.targetX - g.x;
     const dy = g.targetY - g.y;
     const dist = Math.hypot(dx, dy);
+
     if (dist < 0.08) {
-      if (Math.random() < 0.3) {
-        g.idleUntil = now + 1500 + Math.random() * 3000;
+      if (g.activity === 'walking' && g.pendingActivity !== 'walking') {
+        // Just arrived at an activity spot: settle in for a while.
+        g.activity = g.pendingActivity;
+        g.pendingActivity = 'walking';
+        g.idleUntil = now + 3500 + Math.random() * 5000;
+        continue;
       }
-      const target = pickTarget({ x: g.x, y: g.y }, gridSize, terrain, occupancy);
+      // Either arrived at a plain waypoint, or an activity just ended.
+      g.activity = 'walking';
+      const target = pickTarget({ x: g.x, y: g.y }, gridSize, terrain, occupancy, objects);
       g.targetX = target.x;
       g.targetY = target.y;
+      g.pendingActivity = target.activity;
+      if (target.activity === 'walking' && Math.random() < 0.25) {
+        g.idleUntil = now + 1000 + Math.random() * 2000;
+      }
       continue;
     }
+
     const step = Math.min(dist, g.speed * dtSeconds);
     g.x += (dx / dist) * step;
     g.y += (dy / dist) * step;

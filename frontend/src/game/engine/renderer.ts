@@ -92,7 +92,31 @@ function drawTerrainTile(ctx: CanvasRenderingContext2D, gx: number, gy: number, 
 
 function drawGuest(ctx: CanvasRenderingContext2D, guest: WalkingGuest, timeMs: number) {
   const world = gridToWorld(guest.x, guest.y);
-  const bob = Math.sin(timeMs / 220 + guest.bobSeed) * 1.4;
+
+  if (guest.activity === 'swimming') {
+    const bob = Math.sin(timeMs / 260 + guest.bobSeed) * 1.2;
+    ctx.beginPath();
+    ctx.ellipse(world.x, world.y + 1, 6, 2.4, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(world.x, world.y - 1 + bob * 0.4, 3.6, 1.8, 0, 0, Math.PI * 2);
+    ctx.fillStyle = guest.color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(world.x, world.y - 3 + bob * 0.4, 2.6, 0, Math.PI * 2);
+    ctx.fillStyle = '#f2c9a0';
+    ctx.fill();
+    return;
+  }
+
+  const sitting = guest.activity === 'sitting';
+  const bobAmp = guest.activity === 'playing' ? 2.4 : 1.4;
+  const bob = Math.sin(timeMs / (sitting ? 900 : 220) + guest.bobSeed) * bobAmp;
+  const bodyH = sitting ? 3.4 : 5.5;
+  const bodyLift = sitting ? 4 : 7;
+  const headLift = sitting ? 8 : 13.5;
 
   ctx.beginPath();
   ctx.ellipse(world.x, world.y, 4.5, 2, 0, 0, Math.PI * 2);
@@ -100,12 +124,12 @@ function drawGuest(ctx: CanvasRenderingContext2D, guest: WalkingGuest, timeMs: n
   ctx.fill();
 
   ctx.beginPath();
-  ctx.ellipse(world.x, world.y - 7 + bob * 0.3, 3.4, 5.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(world.x, world.y - bodyLift + bob * 0.3, 3.4, bodyH, 0, 0, Math.PI * 2);
   ctx.fillStyle = guest.color;
   ctx.fill();
 
   ctx.beginPath();
-  ctx.arc(world.x, world.y - 13.5 + bob * 0.3, 3, 0, Math.PI * 2);
+  ctx.arc(world.x, world.y - headLift + bob * 0.3, 3, 0, Math.PI * 2);
   ctx.fillStyle = '#f2c9a0';
   ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.15)';
@@ -120,6 +144,7 @@ export interface RenderInput {
   hover: HoverPreview | null;
   guests: WalkingGuest[];
   timeMs: number;
+  movingId?: string | null;
 }
 
 export function renderScene(
@@ -131,15 +156,15 @@ export function renderScene(
 ) {
   const dpr = window.devicePixelRatio || 1;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // Fully transparent: the sky/clouds are a CSS layer behind the canvas so
+  // they can drift for free without waking up the render loop.
   ctx.clearRect(0, 0, cssWidth, cssHeight);
-  ctx.fillStyle = '#bfe3f0';
-  ctx.fillRect(0, 0, cssWidth, cssHeight);
 
   ctx.save();
   ctx.translate(camera.x, camera.y);
   ctx.scale(camera.zoom, camera.zoom);
 
-  const { gridSize, terrain, objects, hover, guests, timeMs } = input;
+  const { gridSize, terrain, objects, hover, guests, timeMs, movingId } = input;
 
   for (let s = 0; s < gridSize * 2; s++) {
     for (let x = 0; x < gridSize; x++) {
@@ -174,7 +199,10 @@ export function renderScene(
     if (!def) continue;
     const anchor = gridToWorld(obj.x + def.w / 2, obj.y + def.h);
     const scale = (def.w + def.h) / 2;
-    drawBuildingSprite(ctx, def.id, anchor.x, anchor.y, scale, def.color, hashId(obj.id));
+    const isMoving = obj.id === movingId;
+    if (isMoving) ctx.globalAlpha = 0.35;
+    drawBuildingSprite(ctx, def.id, anchor.x, anchor.y, scale, def.color, hashId(obj.id), timeMs);
+    if (isMoving) ctx.globalAlpha = 1;
 
     if (def.category === 'pitch' && obj.occupied) {
       const badge = gridToWorld(obj.x + def.w, obj.y);

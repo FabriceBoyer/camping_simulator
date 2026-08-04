@@ -5,7 +5,13 @@ import { groundShadow, polygon, roundedRect, seeded, shade, withAlpha } from './
  * the sprite's ground anchor (front-center of its footprint), with -y being
  * "up" on screen. `s` is a size multiplier derived from the footprint area.
  */
-type Drawer = (ctx: CanvasRenderingContext2D, s: number, color: string, seed: number) => void;
+type Drawer = (
+  ctx: CanvasRenderingContext2D,
+  s: number,
+  color: string,
+  seed: number,
+  timeMs: number,
+) => void;
 
 function tent(ctx: CanvasRenderingContext2D, s: number, color: string) {
   const w = 30 * s;
@@ -261,7 +267,7 @@ function sanitary(ctx: CanvasRenderingContext2D, s: number, color: string) {
   });
 }
 
-function pool(ctx: CanvasRenderingContext2D, s: number) {
+function pool(ctx: CanvasRenderingContext2D, s: number, timeMs: number) {
   const w = 96 * s;
   const h = 46 * s;
   ctx.save();
@@ -279,11 +285,12 @@ function pool(ctx: CanvasRenderingContext2D, s: number) {
   ctx.fillStyle = grad;
   ctx.fill();
 
-  ctx.strokeStyle = withAlpha('#ffffff', 0.55);
+  const shimmer = Math.sin(timeMs / 500) * 3 * s;
+  ctx.strokeStyle = withAlpha('#ffffff', 0.5 + Math.sin(timeMs / 400) * 0.15);
   ctx.lineWidth = 1.5 * s;
   for (let i = -2; i <= 2; i++) {
     ctx.beginPath();
-    ctx.ellipse(i * 8 * s, -h / 2, w / 3, h / 4, 0, 0.3, 1.3);
+    ctx.ellipse(i * 8 * s + shimmer, -h / 2, w / 3, h / 4, 0, 0.3, 1.3);
     ctx.stroke();
   }
 
@@ -626,10 +633,13 @@ function bench(ctx: CanvasRenderingContext2D, s: number) {
   ctx.stroke();
 }
 
-function campfire(ctx: CanvasRenderingContext2D, s: number) {
+function campfire(ctx: CanvasRenderingContext2D, s: number, timeMs: number) {
+  const flicker = Math.sin(timeMs / 90) * 0.12 + Math.sin(timeMs / 233) * 0.08;
+  const sway = Math.sin(timeMs / 170) * 1.5 * s;
+
   ctx.beginPath();
-  ctx.arc(0, -3 * s, 13 * s, 0, Math.PI * 2);
-  ctx.fillStyle = withAlpha('#ff9d3d', 0.18);
+  ctx.arc(0, -3 * s, (13 + flicker * 6) * s, 0, Math.PI * 2);
+  ctx.fillStyle = withAlpha('#ff9d3d', 0.16 + Math.max(0, flicker) * 0.15);
   ctx.fill();
 
   ctx.fillStyle = '#8d8d8d';
@@ -648,15 +658,16 @@ function campfire(ctx: CanvasRenderingContext2D, s: number) {
   ctx.lineTo(-6 * s, -6 * s);
   ctx.stroke();
 
+  const flameScale = 1 + flicker;
   const flame: [number, number][] = [
     [0, -4 * s],
-    [5 * s, -14 * s],
-    [1.5 * s, -13 * s],
-    [3 * s, -22 * s],
-    [0, -16 * s],
-    [-3 * s, -22 * s],
-    [-1.5 * s, -13 * s],
-    [-5 * s, -14 * s],
+    [5 * s + sway, -14 * s * flameScale],
+    [1.5 * s, -13 * s * flameScale],
+    [3 * s + sway * 0.5, -22 * s * flameScale],
+    [0, -16 * s * flameScale],
+    [-3 * s + sway * 0.5, -22 * s * flameScale],
+    [-1.5 * s, -13 * s * flameScale],
+    [-5 * s + sway, -14 * s * flameScale],
   ];
   polygon(ctx, flame);
   ctx.fillStyle = '#ff7b00';
@@ -694,7 +705,7 @@ const DRAWERS: Record<string, Drawer> = {
   chalet: (ctx, s, color) => chalet(ctx, s, color),
   reception: (ctx, s, color) => reception(ctx, s, color),
   sanitaryBlock: (ctx, s, color) => sanitary(ctx, s, color),
-  pool: (ctx, s) => pool(ctx, s),
+  pool: (ctx, s, _color, _seed, timeMs) => pool(ctx, s, timeMs),
   shop: (ctx, s, color) => shop(ctx, s, color),
   restaurant: (ctx, s, color) => restaurant(ctx, s, color),
   playground: (ctx, s) => playground(ctx, s),
@@ -705,7 +716,7 @@ const DRAWERS: Record<string, Drawer> = {
   tree: (ctx, s, color, seed) => tree(ctx, s, color, seed),
   flowerBed: (ctx, s, color, seed) => flowerBed(ctx, s, color, seed),
   bench: (ctx, s) => bench(ctx, s),
-  campfire: (ctx, s) => campfire(ctx, s),
+  campfire: (ctx, s, _color, _seed, timeMs) => campfire(ctx, s, timeMs),
   lamppost: (ctx, s) => lamppost(ctx, s),
 };
 
@@ -717,12 +728,13 @@ export function drawBuildingSprite(
   scale: number,
   color: string,
   seed: number,
+  timeMs: number,
 ) {
   const drawer = DRAWERS[defId];
   ctx.save();
   ctx.translate(worldX, worldY);
   if (drawer) {
-    drawer(ctx, scale, color, seed);
+    drawer(ctx, scale, color, seed, timeMs);
   } else {
     groundShadow(ctx, 0, -1, 14 * scale, 5 * scale);
     ctx.beginPath();

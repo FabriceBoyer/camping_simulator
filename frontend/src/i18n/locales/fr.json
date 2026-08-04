@@ -23,6 +23,7 @@
   "tools": {
     "select": "Sélection",
     "bulldoze": "Démolir",
+    "move": "Déplacer",
     "terrainGrass": "Herbe",
     "terrainRoad": "Route",
     "terrainSand": "Sable"

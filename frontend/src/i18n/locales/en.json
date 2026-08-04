@@ -23,6 +23,7 @@
   "tools": {
     "select": "Select",
     "bulldoze": "Bulldoze",
+    "move": "Move",
     "terrainGrass": "Grass",
     "terrainRoad": "Road",
     "terrainSand": "Sand"
