@@ -41,9 +41,10 @@ function useChangeFlash(value: number): 'up' | 'down' | null {
 interface Props {
   onOpenSaves: () => void;
   onOpenStats: () => void;
+  onOpenLog: () => void;
 }
 
-export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
+export default function TopBar({ onOpenSaves, onOpenStats, onOpenLog }: Props) {
   const { t } = useTranslation();
   const money = useGameStore((s) => s.money);
   const day = useGameStore((s) => s.day);
@@ -62,27 +63,6 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
       <div className="topbar-brand">
         <span className="topbar-logo">🏕️</span>
         <span className="topbar-title">{t('app.title')}</span>
-      </div>
-
-      <div className="topbar-stats">
-        <div
-          className={`stat ${money < 0 ? 'stat-negative' : ''} ${moneyFlash ? `stat-flash-${moneyFlash}` : ''}`}
-          title={t('topbar.money')}
-        >
-          💰 {Math.round(money).toLocaleString()} €
-        </div>
-        <div className="stat" title={t('topbar.satisfaction')}>
-          {satisfactionFace(satisfaction)} {Math.round(satisfaction)}%
-        </div>
-        <div className="stat stat-hide-sm" title={t('topbar.weather')}>
-          {WEATHER_ICON[weather]} {t(`weather.${weather}`)}
-        </div>
-        <div className="stat" title={t('season.' + season)}>
-          {SEASON_ICON[season]} {t('topbar.day', { day })}
-        </div>
-        <div className="stat stat-hide-sm" title={t('topbar.year', { year })}>
-          {t('topbar.year', { year })}
-        </div>
       </div>
 
       <div className="topbar-actions">
@@ -106,10 +86,34 @@ export default function TopBar({ onOpenSaves, onOpenStats }: Props) {
         <button className="topbar-icon-btn" onClick={onOpenStats} title={t('stats.title')}>
           📊
         </button>
+        <button className="topbar-icon-btn" onClick={onOpenLog} title={t('log.title')}>
+          📜
+        </button>
         <button className="topbar-icon-btn" onClick={onOpenSaves} title={t('saveLoad.title')}>
           💾
         </button>
         <LanguageSwitcher />
+      </div>
+
+      <div className="topbar-stats">
+        <div
+          className={`stat ${money < 0 ? 'stat-negative' : ''} ${moneyFlash ? `stat-flash-${moneyFlash}` : ''}`}
+          title={t('topbar.money')}
+        >
+          💰 {Math.round(money).toLocaleString()} €
+        </div>
+        <div className="stat" title={t('topbar.satisfaction')}>
+          {satisfactionFace(satisfaction)} {Math.round(satisfaction)}%
+        </div>
+        <div className="stat stat-hide-sm" title={t('topbar.weather')}>
+          {WEATHER_ICON[weather]} {t(`weather.${weather}`)}
+        </div>
+        <div className="stat" title={t('season.' + season)}>
+          {SEASON_ICON[season]} {t('topbar.day', { day })}
+        </div>
+        <div className="stat stat-hide-sm" title={t('topbar.year', { year })}>
+          {t('topbar.year', { year })}
+        </div>
       </div>
     </header>
   );

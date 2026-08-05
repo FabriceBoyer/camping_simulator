@@ -78,7 +78,7 @@ export default function GameCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const { terrain, objects, gridSize, weather } = useGameStore.getState();
+    const { terrain, objects, gridSize, weather, activeEvent } = useGameStore.getState();
     renderScene(ctx, cameraRef.current, sizeRef.current.w, sizeRef.current.h, {
       gridSize,
       terrain,
@@ -88,6 +88,7 @@ export default function GameCanvas() {
       timeMs: performance.now(),
       movingId: movingRef.current?.id ?? null,
       weather,
+      activeEvent,
     });
   }, []);
 
@@ -97,7 +98,12 @@ export default function GameCanvas() {
     const loop = (t: number) => {
       const state = useGameStore.getState();
       const isRaining = state.weather === 'rain' || state.weather === 'storm';
-      if (guestsRef.current.length === 0 && !hasAmbientAnimatable(state.objects) && !isRaining) {
+      if (
+        guestsRef.current.length === 0 &&
+        !hasAmbientAnimatable(state.objects) &&
+        !isRaining &&
+        !state.activeEvent
+      ) {
         rafRef.current = null;
         return;
       }
@@ -124,7 +130,9 @@ export default function GameCanvas() {
       guests.pop();
     }
     const isRaining = state.weather === 'rain' || state.weather === 'storm';
-    if (guests.length > 0 || hasAmbientAnimatable(state.objects) || isRaining) ensureAnimationLoop();
+    if (guests.length > 0 || hasAmbientAnimatable(state.objects) || isRaining || state.activeEvent) {
+      ensureAnimationLoop();
+    }
   }, [ensureAnimationLoop]);
 
   const getPos = useCallback((e: PointerEvent | React.PointerEvent) => {
@@ -157,7 +165,7 @@ export default function GameCanvas() {
       } else if (currentTool.kind === 'bulldoze') {
         const valid = !!state.occupancy[`${gx},${gy}`];
         hoverRef.current = { x: gx, y: gy, w: 1, h: 1, valid };
-      } else if (currentTool.kind === 'move') {
+      } else if (currentTool.kind === 'move' || currentTool.kind === 'info') {
         const objId = state.occupancy[`${gx},${gy}`];
         const obj = objId ? state.objects[objId] : null;
         const def = obj ? BUILDINGS_BY_ID[obj.defId] : null;
@@ -277,7 +285,9 @@ export default function GameCanvas() {
         const currentTool = useGameStore.getState().tool;
         tapStartRef.current = { x: sx, y: sy, t: performance.now() };
 
-        if (currentTool.kind === 'select') {
+        if (currentTool.kind === 'select' || currentTool.kind === 'info') {
+          // Both just pan; 'info' additionally shows the panel on a clean
+          // tap (detected in endGesture), 'select' is purely for browsing.
           dragStartRef.current = { x: sx, y: sy, camX: cameraRef.current.x, camY: cameraRef.current.y };
         } else if (currentTool.kind === 'move') {
           const state = useGameStore.getState();
@@ -397,7 +407,7 @@ export default function GameCanvas() {
       } else if (wasSingle && dragStartRef.current) {
         const start = tapStartRef.current;
         const moved = start ? distance({ x: sx, y: sy }, { x: start.x, y: start.y }) : 999;
-        if (moved < 8) {
+        if (moved < 8 && useGameStore.getState().tool.kind === 'info') {
           const state = useGameStore.getState();
           const g = screenToGrid(sx, sy, cameraRef.current);
           const gx = Math.floor(g.x);
@@ -457,7 +467,7 @@ export default function GameCanvas() {
   }, [draw, getPos, paintCellAt, updateHover]);
 
   const cursor =
-    tool.kind === 'select' || tool.kind === 'move'
+    tool.kind === 'select' || tool.kind === 'move' || tool.kind === 'info'
       ? 'grab'
       : tool.kind === 'bulldoze'
         ? 'not-allowed'

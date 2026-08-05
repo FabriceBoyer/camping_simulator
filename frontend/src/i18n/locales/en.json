@@ -31,6 +31,7 @@
     "select": "Select",
     "bulldoze": "Bulldoze",
     "move": "Move",
+    "info": "Info",
     "terrainGrass": "Grass",
     "terrainRoad": "Road",
     "terrainSand": "Sand"
@@ -159,6 +160,21 @@
     "status": "Status",
     "occupied": "Occupied until day {{day}}",
     "vacant": "Vacant"
+  },
+  "log": {
+    "title": "Logbook",
+    "empty": "No events yet.",
+    "dayYear": "Day {{day}}, year {{year}}",
+    "built": "Built: {{name}}",
+    "demolished": "Demolished: {{name}}",
+    "moved": "Moved: {{name}}",
+    "hired": "Hired: {{name}}",
+    "fired": "Dismissed: {{name}}",
+    "loanTaken": "Borrowed {{amount}} €",
+    "loanRepaid": "Repaid {{amount}} €",
+    "marketingStarted": "Marketing campaign launched ({{amount}} €)",
+    "disaster": "Disaster: {{name}}",
+    "bankrupt": "Campsite went bankrupt"
   },
   "saveLoad": {
     "title": "Saved games",

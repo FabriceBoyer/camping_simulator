@@ -11,6 +11,8 @@ import type {
   ActiveEvent,
   DisasterType,
   HistoryPoint,
+  LogEntry,
+  LogKind,
   PlacedObject,
   Season,
   StaffMember,
@@ -24,6 +26,7 @@ export const GRID_SIZE = 28;
 const STARTING_MONEY = 8000;
 const MAX_HISTORY = 90;
 const MAX_UNDO = 40;
+const MAX_LOG = 200;
 const SAVE_KEY = 'camping-simulator-current-game';
 
 const LOAN_MAX_DEBT = 6000;
@@ -50,6 +53,7 @@ export interface SerializedGame {
   activeEvent: ActiveEvent | null;
   marketingDaysRemaining: number;
   debt: number;
+  logs: LogEntry[];
 }
 
 interface EditableSnapshot {
@@ -89,6 +93,8 @@ interface GameState {
 
   undoStack: EditableSnapshot[];
   redoStack: EditableSnapshot[];
+
+  logs: LogEntry[];
 
   lastIncome: number;
   lastUpkeep: number;
@@ -141,6 +147,15 @@ function footprintCells(x: number, y: number, w: number, h: number): [number, nu
   return cells;
 }
 
+function makeLogEntry(
+  day: number,
+  year: number,
+  kind: LogKind,
+  extra: Partial<Omit<LogEntry, 'id' | 'day' | 'year' | 'kind'>> = {},
+): LogEntry {
+  return { id: makeId(), day, year, kind, ...extra };
+}
+
 function snapshotOf(s: {
   terrain: TerrainType[][];
   objects: Record<string, PlacedObject>;
@@ -191,6 +206,7 @@ function initialFields() {
     debt: 0,
     undoStack: [] as EditableSnapshot[],
     redoStack: [] as EditableSnapshot[],
+    logs: [] as LogEntry[],
     lastIncome: 0,
     lastUpkeep: 0,
     lastNewGuests: 0,
@@ -236,6 +252,9 @@ export const useGameStore = create<GameState>()(
           money: state.money + refund,
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [...state.logs, makeLogEntry(state.day, state.year, 'demolish', { defId: def.id })].slice(
+            -MAX_LOG,
+          ),
         });
       },
 
@@ -258,6 +277,7 @@ export const useGameStore = create<GameState>()(
           occupancy: nextOccupancy,
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [...state.logs, makeLogEntry(state.day, state.year, 'move', { defId: def.id })].slice(-MAX_LOG),
         });
         return true;
       },
@@ -320,6 +340,9 @@ export const useGameStore = create<GameState>()(
             money: state.money - def.cost,
             undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
             redoStack: [],
+            logs: [...state.logs, makeLogEntry(state.day, state.year, 'build', { defId: def.id })].slice(
+              -MAX_LOG,
+            ),
           });
         }
       },
@@ -377,12 +400,16 @@ export const useGameStore = create<GameState>()(
 
         const nextActiveEvent: ActiveEvent | null = state.activeEvent
           ? state.activeEvent.daysRemaining - 1 > 0
-            ? { type: state.activeEvent.type, daysRemaining: state.activeEvent.daysRemaining - 1 }
+            ? { ...state.activeEvent, daysRemaining: state.activeEvent.daysRemaining - 1 }
             : null
           : null;
         const nextMarketingDays = Math.max(0, state.marketingDaysRemaining - 1);
         const nextWeather = rollWeather(nextSeason);
         const nextDebt = state.debt > 0 ? Math.round(state.debt * (1 + LOAN_DAILY_INTEREST)) : 0;
+        const nextLogs =
+          gameOver && !state.gameOver
+            ? [...state.logs, makeLogEntry(state.day, state.year, 'bankrupt')].slice(-MAX_LOG)
+            : state.logs;
 
         set({
           objects: result.objects,
@@ -408,6 +435,7 @@ export const useGameStore = create<GameState>()(
           marketingDaysRemaining: nextMarketingDays,
           weather: nextWeather,
           debt: nextDebt,
+          logs: nextLogs,
         });
       },
 
@@ -419,15 +447,22 @@ export const useGameStore = create<GameState>()(
           staff: [...state.staff, { id: makeId(), type }],
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [...state.logs, makeLogEntry(state.day, state.year, 'hire', { staffType: type })].slice(
+            -MAX_LOG,
+          ),
         });
       },
 
       fireStaff: (id) => {
         const state = get();
+        const staffType = state.staff.find((s) => s.id === id)?.type;
         set({
           staff: state.staff.filter((s) => s.id !== id),
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: staffType
+            ? [...state.logs, makeLogEntry(state.day, state.year, 'fire', { staffType })].slice(-MAX_LOG)
+            : state.logs,
         });
       },
 
@@ -443,6 +478,9 @@ export const useGameStore = create<GameState>()(
           debt: state.debt + capped,
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [...state.logs, makeLogEntry(state.day, state.year, 'loan', { amount: capped })].slice(
+            -MAX_LOG,
+          ),
         });
       },
 
@@ -455,6 +493,9 @@ export const useGameStore = create<GameState>()(
           debt: state.debt - capped,
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [...state.logs, makeLogEntry(state.day, state.year, 'repay', { amount: capped })].slice(
+            -MAX_LOG,
+          ),
         });
       },
 
@@ -469,6 +510,10 @@ export const useGameStore = create<GameState>()(
           marketingDaysRemaining: MARKETING_DURATION_DAYS,
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [
+            ...state.logs,
+            makeLogEntry(state.day, state.year, 'marketing', { amount: MARKETING_COST }),
+          ].slice(-MAX_LOG),
         });
       },
 
@@ -486,24 +531,35 @@ export const useGameStore = create<GameState>()(
 
         const nextObjects = { ...state.objects };
         const nextOccupancy = { ...state.occupancy };
+        let epicenterX = 0;
+        let epicenterY = 0;
         for (const obj of toDestroy) {
           const objDef = BUILDINGS_BY_ID[obj.defId];
           if (!objDef) continue;
+          epicenterX += obj.x + objDef.w / 2;
+          epicenterY += obj.y + objDef.h / 2;
           for (const [cx, cy] of footprintCells(obj.x, obj.y, objDef.w, objDef.h)) {
             delete nextOccupancy[key(cx, cy)];
           }
           delete nextObjects[obj.id];
         }
+        const epicenter =
+          toDestroy.length > 0
+            ? { x: epicenterX / toDestroy.length, y: epicenterY / toDestroy.length }
+            : { x: state.gridSize / 2, y: state.gridSize / 2 };
 
         set({
           objects: nextObjects,
           occupancy: nextOccupancy,
           money: state.money - def.moneyHit,
           satisfaction: Math.max(0, state.satisfaction - def.satisfactionHit),
-          activeEvent: { type, daysRemaining: def.durationDays },
+          activeEvent: { type, daysRemaining: def.durationDays, x: epicenter.x, y: epicenter.y },
           toast: 'events.occurred',
           undoStack: [...state.undoStack, snapshotOf(state)].slice(-MAX_UNDO),
           redoStack: [],
+          logs: [...state.logs, makeLogEntry(state.day, state.year, 'disaster', { disasterType: type })].slice(
+            -MAX_LOG,
+          ),
         });
       },
 
@@ -557,6 +613,7 @@ export const useGameStore = create<GameState>()(
           activeEvent: save.activeEvent ?? null,
           marketingDaysRemaining: save.marketingDaysRemaining ?? 0,
           debt: save.debt ?? 0,
+          logs: save.logs ?? [],
           undoStack: [],
           redoStack: [],
           speed: 1,
@@ -586,6 +643,7 @@ export const useGameStore = create<GameState>()(
           activeEvent: state.activeEvent,
           marketingDaysRemaining: state.marketingDaysRemaining,
           debt: state.debt,
+          logs: state.logs,
         };
       },
     }),
@@ -612,6 +670,7 @@ export const useGameStore = create<GameState>()(
         activeEvent: state.activeEvent,
         marketingDaysRemaining: state.marketingDaysRemaining,
         debt: state.debt,
+        logs: state.logs,
         lastIncome: state.lastIncome,
         lastUpkeep: state.lastUpkeep,
         lastNewGuests: state.lastNewGuests,

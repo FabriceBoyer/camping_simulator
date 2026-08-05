@@ -31,6 +31,7 @@
     "select": "Sélection",
     "bulldoze": "Démolir",
     "move": "Déplacer",
+    "info": "Info",
     "terrainGrass": "Herbe",
     "terrainRoad": "Route",
     "terrainSand": "Sable"
@@ -159,6 +160,21 @@
     "status": "Statut",
     "occupied": "Occupé jusqu'au jour {{day}}",
     "vacant": "Libre"
+  },
+  "log": {
+    "title": "Journal de bord",
+    "empty": "Aucun événement pour l'instant.",
+    "dayYear": "Jour {{day}}, an {{year}}",
+    "built": "Construction : {{name}}",
+    "demolished": "Démolition : {{name}}",
+    "moved": "Déplacement : {{name}}",
+    "hired": "Embauche : {{name}}",
+    "fired": "Renvoi : {{name}}",
+    "loanTaken": "Emprunt de {{amount}} €",
+    "loanRepaid": "Remboursement de {{amount}} €",
+    "marketingStarted": "Campagne marketing lancée ({{amount}} €)",
+    "disaster": "Catastrophe : {{name}}",
+    "bankrupt": "Faillite du camping"
   },
   "saveLoad": {
     "title": "Sauvegardes",

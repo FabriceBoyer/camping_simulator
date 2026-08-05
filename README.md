@@ -59,15 +59,19 @@ Ouvre ensuite `http://localhost:8080` (port configurable via `HOST_PORT` dans
   nommés (💾) pour garder plusieurs parties.
 - **Déplacement d'objets** (✋) : reprendre un bâtiment déjà posé et le
   glisser vers un nouvel emplacement libre, sans avoir à le démolir/reconstruire.
-- **Panneau d'information** : cliquer/toucher un bâtiment existant (mode
-  Sélection) affiche coût, revenu, entretien, satisfaction et statut
-  d'occupation, avec accès rapide à Déplacer/Démolir.
+- **Mode Info** (ℹ️) : toucher/cliquer un bâtiment existant affiche un panneau
+  détaillé (catégorie, coût, revenu, entretien, satisfaction, statut
+  d'occupation) avec accès rapide à Déplacer/Démolir. Le mode Sélection sert
+  uniquement à naviguer sur la carte.
 - **Météo** : ensoleillé / nuageux / pluie / orage, tirée chaque jour selon la
-  saison ; influence la demande et la satisfaction (pluie de fin de partie
-  visible à l'écran).
+  saison ; influence la demande et la satisfaction (pluie visible à l'écran).
 - **Événements spéciaux** (⚡ dans les statistiques) : déclencher incendie,
-  tornade ou éruption volcanique — détruit des bâtiments au hasard, fait
-  chuter la satisfaction et réduit la demande pendant quelques jours.
+  tornade ou éruption volcanique — détruit des bâtiments au hasard autour d'un
+  épicentre visible sur la carte (fumée, tourbillon, lave selon l'événement),
+  fait chuter la satisfaction et réduit la demande pendant quelques jours.
+- **Journal de bord** (📜) : historique horodaté de toutes les actions
+  (constructions, démolitions, déplacements, personnel, emprunts,
+  remboursements, campagnes marketing, catastrophes, faillite).
 - **Banque** : emprunter jusqu'à 6000 €, avec intérêts (2 %/jour) qui
   s'accumulent sur la dette jusqu'au remboursement.
 - **Marketing** : lancer une campagne payante pour booster temporairement la

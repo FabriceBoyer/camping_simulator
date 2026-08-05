@@ -29,7 +29,6 @@
   font-weight: 700;
   white-space: nowrap;
   flex: 0 0 auto;
-  order: 1;
 }
 .topbar-logo {
   font-size: 20px;
@@ -49,7 +48,6 @@
   gap: 6px;
   flex: 1 1 auto;
   min-width: 0;
-  order: 3;
   flex-basis: 100%;
   justify-content: space-between;
 }
@@ -108,14 +106,15 @@
   display: none;
 }
 
+/* Children (undo/redo buttons, SpeedControls, LanguageSwitcher, ...) flow
+ * as direct flex items of .topbar itself, right after the brand, so they
+ * share its row instead of being forced onto their own — this is what lets
+ * the lone brand icon avoid wasting a full row on narrow screens. */
 .topbar-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  flex: 1 1 100%;
-  order: 2;
-  justify-content: flex-end;
+  display: contents;
+}
+.topbar-actions > * {
+  flex: 0 0 auto;
 }
 
 @media (min-width: 720px) {
@@ -125,20 +124,10 @@
     min-height: 0;
   }
   .topbar-stats {
-    order: 0;
     flex-basis: auto;
     gap: 10px;
     justify-content: flex-start;
-  }
-  .topbar-brand {
-    order: 0;
-  }
-  .topbar-actions {
-    order: 0;
-    flex: 0 0 auto;
-    flex-wrap: nowrap;
-    margin-left: 0;
-    gap: 8px;
+    margin-left: auto;
   }
   .stat-hide-sm {
     display: flex;
@@ -937,4 +926,45 @@
   align-self: flex-start;
   font-size: 12px;
   padding: 6px 10px;
+}
+
+/* ---------- Logbook ---------- */
+.log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.log-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--panel-bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.log-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.log-body {
+  min-width: 0;
+}
+.log-message {
+  font-size: 13px;
+  font-weight: 600;
+}
+.log-date {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.log-row-disaster .log-message,
+.log-row-bankrupt .log-message {
+  color: var(--danger);
 }

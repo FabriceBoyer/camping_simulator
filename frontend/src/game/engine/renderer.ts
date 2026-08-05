@@ -1,6 +1,6 @@
 import { BUILDINGS_BY_ID } from '../data/buildings';
 import { TERRAIN_COLORS } from '../data/terrain';
-import type { Camera, PlacedObject, TerrainType } from '../types';
+import type { ActiveEvent, Camera, PlacedObject, TerrainType } from '../types';
 import { TILE_HEIGHT, TILE_WIDTH, gridToWorld } from './coords';
 import { drawBuildingSprite } from './buildingSprites';
 import { seeded } from './shapes';
@@ -137,6 +137,92 @@ function drawGuest(ctx: CanvasRenderingContext2D, guest: WalkingGuest, timeMs: n
   ctx.stroke();
 }
 
+function drawDisasterEffect(
+  ctx: CanvasRenderingContext2D,
+  type: ActiveEvent['type'],
+  cx: number,
+  cy: number,
+  timeMs: number,
+) {
+  ctx.save();
+
+  if (type === 'fire') {
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 24, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,120,40,0.22)';
+    ctx.fill();
+    for (let i = 0; i < 6; i++) {
+      const cycle = 2200;
+      const phase = ((timeMs + i * 350) % cycle) / cycle;
+      const drift = (seeded(i * 13.7) * 2 - 1) * 12;
+      const px = cx + drift * phase;
+      const py = cy - phase * 60 - 6;
+      ctx.beginPath();
+      ctx.arc(px, py, 5 + phase * 10, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(70,70,75,${0.35 * (1 - phase)})`;
+      ctx.fill();
+    }
+    for (let i = 0; i < 3; i++) {
+      const a = (i / 3) * Math.PI * 2 + timeMs / 400;
+      const fx = cx + Math.cos(a) * 12;
+      const fy = cy + Math.sin(a) * 5;
+      const flicker = Math.sin(timeMs / 150 + i) * 3;
+      ctx.beginPath();
+      ctx.moveTo(fx - 3, fy);
+      ctx.lineTo(fx, fy - 10 - flicker);
+      ctx.lineTo(fx + 3, fy);
+      ctx.closePath();
+      ctx.fillStyle = '#ff7b00';
+      ctx.fill();
+    }
+  } else if (type === 'tornado') {
+    const height = 70;
+    ctx.strokeStyle = 'rgba(120,120,130,0.55)';
+    ctx.lineWidth = 2;
+    for (let ring = 0; ring < 6; ring++) {
+      const ry = cy - (ring / 6) * height;
+      const rx = 6 + (ring / 6) * 22;
+      const rot = timeMs / 200 + ring;
+      ctx.beginPath();
+      ctx.ellipse(cx, ry, rx, 4, rot, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = timeMs / 180 + (i / 4) * Math.PI * 2;
+      const r = 18 + Math.sin(timeMs / 300 + i) * 4;
+      const dx = cx + Math.cos(a) * r;
+      const dy = cy - 20 + Math.sin(a) * r * 0.4;
+      ctx.beginPath();
+      ctx.arc(dx, dy, 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#8d99ae';
+      ctx.fill();
+    }
+  } else {
+    const pulse = 0.5 + Math.sin(timeMs / 350) * 0.2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 22, 10, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,80,20,${0.3 * pulse})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 12, 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,150,40,${0.5 * pulse})`;
+    ctx.fill();
+    for (let i = 0; i < 5; i++) {
+      const cycle = 1800;
+      const phase = ((timeMs + i * 300) % cycle) / cycle;
+      const drift = (seeded(i * 7.1) * 2 - 1) * 8;
+      const px = cx + drift * phase;
+      const py = cy - phase * 70 - 4;
+      ctx.beginPath();
+      ctx.arc(px, py, 4 + phase * 6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(50,45,45,${0.4 * (1 - phase)})`;
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
 function drawRain(
   ctx: CanvasRenderingContext2D,
   cssWidth: number,
@@ -172,6 +258,7 @@ export interface RenderInput {
   timeMs: number;
   movingId?: string | null;
   weather?: 'sunny' | 'cloudy' | 'rain' | 'storm';
+  activeEvent?: ActiveEvent | null;
 }
 
 export function renderScene(
@@ -224,7 +311,11 @@ export function renderScene(
     const obj = item.obj;
     const def = BUILDINGS_BY_ID[obj.defId];
     if (!def) continue;
-    const anchor = gridToWorld(obj.x + def.w / 2, obj.y + def.h);
+    // Centroid of the footprint diamond (gridToWorld is linear, so the
+    // image of the rectangle's center is exactly the diamond's visual
+    // center) — this must match where the build/move ghost preview is
+    // drawn, or sprites drift sideways relative to their actual tiles.
+    const anchor = gridToWorld(obj.x + def.w / 2, obj.y + def.h / 2);
     const scale = (def.w + def.h) / 2;
     const isMoving = obj.id === movingId;
     if (isMoving) ctx.globalAlpha = 0.35;
@@ -241,6 +332,11 @@ export function renderScene(
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
+  }
+
+  if (input.activeEvent) {
+    const epicenter = gridToWorld(input.activeEvent.x, input.activeEvent.y);
+    drawDisasterEffect(ctx, input.activeEvent.type, epicenter.x, epicenter.y, timeMs);
   }
 
   if (hover) {

@@ -8,6 +8,7 @@ import GameOverModal from './components/ui/GameOverModal';
 import Toast from './components/ui/Toast';
 import SaveLoadPanel from './components/ui/SaveLoadPanel';
 import StatsPanel from './components/ui/StatsPanel';
+import LogPanel from './components/ui/LogPanel';
 
 const SPEED_INTERVAL_MS: Record<number, number> = {
   1: 3500,
@@ -20,6 +21,7 @@ function App() {
   const tick = useGameStore((s) => s.tick);
   const [savesOpen, setSavesOpen] = useState(false);
   const [statsOpen, setStatsOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     if (speed === 0) return;
@@ -48,7 +50,11 @@ function App() {
 
   return (
     <div className="app-shell">
-      <TopBar onOpenSaves={() => setSavesOpen(true)} onOpenStats={() => setStatsOpen(true)} />
+      <TopBar
+        onOpenSaves={() => setSavesOpen(true)}
+        onOpenStats={() => setStatsOpen(true)}
+        onOpenLog={() => setLogOpen(true)}
+      />
       <main className="app-main">
         <GameCanvas />
       </main>
@@ -57,6 +63,7 @@ function App() {
       <Toast />
       <SaveLoadPanel open={savesOpen} onClose={() => setSavesOpen(false)} />
       <StatsPanel open={statsOpen} onClose={() => setStatsOpen(false)} />
+      <LogPanel open={logOpen} onClose={() => setLogOpen(false)} />
     </div>
   );
 }

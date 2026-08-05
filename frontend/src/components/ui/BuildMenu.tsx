@@ -33,6 +33,7 @@ export default function BuildMenu() {
   const fireStaff = useGameStore((s) => s.fireStaff);
 
   const isSelect = tool.kind === 'select';
+  const isInfo = tool.kind === 'info';
   const isBulldoze = tool.kind === 'bulldoze';
   const isMove = tool.kind === 'move';
 
@@ -45,6 +46,9 @@ export default function BuildMenu() {
       <div className="build-menu-modes">
         <button className={isSelect ? 'active' : ''} onClick={() => setTool({ kind: 'select' })}>
           🖐️ <span>{t('tools.select')}</span>
+        </button>
+        <button className={isInfo ? 'active' : ''} onClick={() => setTool({ kind: 'info' })}>
+          ℹ️ <span>{t('tools.info')}</span>
         </button>
         <button className={isMove ? 'active' : ''} onClick={() => setTool({ kind: 'move' })}>
           ✋ <span>{t('tools.move')}</span>

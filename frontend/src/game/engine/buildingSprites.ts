@@ -136,7 +136,7 @@ function mobileHome(ctx: CanvasRenderingContext2D, s: number, color: string) {
 }
 
 function chalet(ctx: CanvasRenderingContext2D, s: number, color: string) {
-  const w = 66 * s;
+  const w = 50 * s;
   const bodyH = 30 * s;
   const roofH = 24 * s;
   groundShadow(ctx, 0, -1, w * 0.55, 8 * s);
@@ -268,8 +268,8 @@ function sanitary(ctx: CanvasRenderingContext2D, s: number, color: string) {
 }
 
 function pool(ctx: CanvasRenderingContext2D, s: number, timeMs: number) {
-  const w = 96 * s;
-  const h = 46 * s;
+  const w = 60 * s;
+  const h = 30 * s;
   ctx.save();
   ctx.beginPath();
   ctx.ellipse(0, -h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
@@ -343,8 +343,8 @@ function shop(ctx: CanvasRenderingContext2D, s: number, color: string) {
 }
 
 function restaurant(ctx: CanvasRenderingContext2D, s: number, color: string) {
-  const w = 58 * s;
-  const h = 32 * s;
+  const w = 44 * s;
+  const h = 30 * s;
   flatBuilding(ctx, s, color, w, h, (c, ww, hh, ss) => {
     roundedRect(c, -ww * 0.15, -hh * 0.78, ww * 0.5, hh * 0.55, 1.5 * ss);
     c.fillStyle = '#fff3e6';
@@ -352,7 +352,7 @@ function restaurant(ctx: CanvasRenderingContext2D, s: number, color: string) {
     c.strokeStyle = shade(color, 0.5);
     c.stroke();
   });
-  const tableX = w * 0.62;
+  const tableX = w * 0.5;
   ctx.save();
   ctx.translate(tableX, 0);
   groundShadow(ctx, 0, -1, 9 * s, 3 * s);
@@ -490,7 +490,7 @@ function bikeRental(ctx: CanvasRenderingContext2D, s: number, color: string) {
 }
 
 function minigolf(ctx: CanvasRenderingContext2D, s: number) {
-  const w = 100 * s;
+  const w = 62 * s;
   ctx.save();
   ctx.beginPath();
   ctx.ellipse(-w * 0.15, -2, w * 0.34, 14 * s, -0.15, 0, Math.PI * 2);
@@ -530,7 +530,7 @@ function minigolf(ctx: CanvasRenderingContext2D, s: number) {
 }
 
 function stage(ctx: CanvasRenderingContext2D, s: number, color: string) {
-  const w = 100 * s;
+  const w = 58 * s;
   const deckH = 10 * s;
   groundShadow(ctx, 0, -1, w * 0.5, 10 * s);
 
